@@ -7,6 +7,15 @@ from datetime import datetime
 dynamodb = boto3.resource('dynamodb')
 
 def handler(event, context):
+    claims = event['requestContext']['authorizer']['claims']
+    groups = claims.get('cognito:groups', [])
+    
+    if 'admin' not in groups:
+        return {
+            'statusCode': 403,
+            'body': json.dumps({'error': 'Forbidden: Admin access required'})
+        }
+
     try:
         if isinstance(event.get('body'), str):
             body = json.loads(event['body'])
