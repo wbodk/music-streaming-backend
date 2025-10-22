@@ -40,40 +40,6 @@ class MusicStreamingBackendStack(Stack):
         
         db.grant_write_data(create_song_handler)
 
-        api = apigateway.RestApi(
-            self,
-            "MusicStreamingAPI",
-            rest_api_name="Music Streaming API",
-            description="REST API for music streaming CRUD operations",
-            default_cors_preflight_options=apigateway.CorsOptions(
-                allow_methods=apigateway.Cors.ALL_METHODS,
-                allow_origins=apigateway.Cors.ALL_ORIGINS
-            )
-        )
-
-        songs_resource = api.root.add_resource("songs")
-        
-        songs_resource.add_method("GET", apigateway.MockIntegration(
-            integration_responses=[apigateway.IntegrationResponse(status_code="200")]
-        ), method_responses=[apigateway.MethodResponse(status_code="200")])
-        
-        songs_resource.add_method("POST", apigateway.LambdaIntegration(create_song_handler),
-            method_responses=[apigateway.MethodResponse(status_code="201")])
-        
-        song_resource = songs_resource.add_resource("{songId}")
-        
-        song_resource.add_method("GET", apigateway.MockIntegration(
-            integration_responses=[apigateway.IntegrationResponse(status_code="200")]
-        ), method_responses=[apigateway.MethodResponse(status_code="200")])
-        
-        song_resource.add_method("PUT", apigateway.MockIntegration(
-            integration_responses=[apigateway.IntegrationResponse(status_code="200")]
-        ), method_responses=[apigateway.MethodResponse(status_code="200")])
-        
-        song_resource.add_method("DELETE", apigateway.MockIntegration(
-            integration_responses=[apigateway.IntegrationResponse(status_code="204")]
-        ), method_responses=[apigateway.MethodResponse(status_code="204")])
-
         user_pool = cognito.UserPool(
             self,
             "MusicStreamingUserPool",
@@ -149,3 +115,54 @@ class MusicStreamingBackendStack(Stack):
             refresh_token_validity=Duration.days(30),
             prevent_user_existence_errors=True
         )
+
+        admin_group = cognito.CfnUserPoolGroup(
+            self,
+            "AdminGroup",
+            user_pool_id=user_pool.user_pool_id,
+            group_name="admin",
+            description="Administrator group for music streaming app",
+            precedence=0
+        )
+
+        cognito_authorizer = apigateway.CognitoUserPoolsAuthorizer(
+            self,
+            "CognitoAuthorizer",
+            cognito_user_pools=[user_pool]
+        )
+
+        api = apigateway.RestApi(
+            self,
+            "MusicStreamingAPI",
+            rest_api_name="Music Streaming API",
+            description="REST API for music streaming CRUD operations",
+            default_cors_preflight_options=apigateway.CorsOptions(
+                allow_methods=apigateway.Cors.ALL_METHODS,
+                allow_origins=apigateway.Cors.ALL_ORIGINS
+            )
+        )
+
+        songs_resource = api.root.add_resource("songs")
+        
+        songs_resource.add_method("GET", apigateway.MockIntegration(
+            integration_responses=[apigateway.IntegrationResponse(status_code="200")]
+        ), method_responses=[apigateway.MethodResponse(status_code="200")])
+        
+        songs_resource.add_method("POST", apigateway.LambdaIntegration(create_song_handler),
+            authorization_type=apigateway.AuthorizationType.COGNITO,
+            authorizer=cognito_authorizer,
+            method_responses=[apigateway.MethodResponse(status_code="201")])
+        
+        song_resource = songs_resource.add_resource("{songId}")
+        
+        song_resource.add_method("GET", apigateway.MockIntegration(
+            integration_responses=[apigateway.IntegrationResponse(status_code="200")]
+        ), method_responses=[apigateway.MethodResponse(status_code="200")])
+        
+        song_resource.add_method("PUT", apigateway.MockIntegration(
+            integration_responses=[apigateway.IntegrationResponse(status_code="200")]
+        ), method_responses=[apigateway.MethodResponse(status_code="200")])
+        
+        song_resource.add_method("DELETE", apigateway.MockIntegration(
+            integration_responses=[apigateway.IntegrationResponse(status_code="204")]
+        ), method_responses=[apigateway.MethodResponse(status_code="204")])
