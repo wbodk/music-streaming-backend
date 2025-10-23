@@ -100,7 +100,7 @@ def handler(event, context):
                 'email': email
             })
         }
-      except cognito.exceptions.UsernameExistsException:
+    except cognito.exceptions.UsernameExistsException:
         return {
             'statusCode': 409,
             'headers': CORS_HEADERS,
