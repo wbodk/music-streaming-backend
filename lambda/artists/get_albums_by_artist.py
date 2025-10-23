@@ -67,9 +67,10 @@ def handler(event, context):
                 except json.JSONDecodeError:
                     pass
         
-        # Query for albums by artist
-        scan_params = {
-            'FilterExpression': 'artist_id = :artist_id',
+        # Query albums by artist using GSI for efficient filtering
+        query_params = {
+            'IndexName': 'artist-id-index',
+            'KeyConditionExpression': 'artist_id = :artist_id',
             'ExpressionAttributeValues': {
                 ':artist_id': artist_id
             },
@@ -77,16 +78,15 @@ def handler(event, context):
         }
         
         if exclusive_start_key:
-            scan_params['ExclusiveStartKey'] = exclusive_start_key
+            query_params['ExclusiveStartKey'] = exclusive_start_key
         
-        response = table.scan(**scan_params)
+        response = table.query(**query_params)
         
         # Convert Decimal to float for JSON serialization
         items = []
         for item in response.get('Items', []):
-            if item['pk'].startswith('ALBUM'):
-                item_dict = json.loads(json.dumps(item, default=str))
-                items.append(item_dict)
+            item_dict = json.loads(json.dumps(item, default=str))
+            items.append(item_dict)
         
         return {
             'statusCode': 200,
