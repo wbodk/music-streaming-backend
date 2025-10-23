@@ -26,8 +26,7 @@ def handler(event, context):
         "email": "user@example.com",
         "given_name": "John",
         "family_name": "Doe",
-        "birthdate": "1990-01-15",
-        "preferred_username": "johndoe"
+        "birthdate": "1990-01-15"
     }
     """
     try:
@@ -43,12 +42,11 @@ def handler(event, context):
         given_name = body.get('given_name')
         family_name = body.get('family_name')
         birthdate = body.get('birthdate')
-        preferred_username = body.get('preferred_username')
         
         user_pool_id = os.environ.get('USER_POOL_ID')
         
         # Validate required fields
-        required_fields = ['username', 'password', 'email', 'given_name', 'family_name', 'birthdate', 'preferred_username']
+        required_fields = ['username', 'password', 'email', 'given_name', 'family_name', 'birthdate']
         missing_fields = [field for field in required_fields if not body.get(field)]
         
         if missing_fields:
@@ -71,8 +69,7 @@ def handler(event, context):
                 {'Name': 'email', 'Value': email},
                 {'Name': 'given_name', 'Value': given_name},
                 {'Name': 'family_name', 'Value': family_name},
-                {'Name': 'birthdate', 'Value': birthdate},
-                {'Name': 'preferred_username', 'Value': preferred_username}
+                {'Name': 'birthdate', 'Value': birthdate}
             ]
         }
         
