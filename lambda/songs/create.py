@@ -24,7 +24,7 @@ def handler(event, context):
         else:
             body = event.get('body', {})
         
-        required_fields = ['title', 'artist', 'duration']
+        required_fields = ['title', 'artist', 'duration', 'album_id']
         if not all(field in body for field in required_fields):
             return {
                 'statusCode': 400,
@@ -40,6 +40,24 @@ def handler(event, context):
         table_name = os.environ.get('TABLE_NAME')
         bucket_name = os.environ.get('BUCKET_NAME')
         table = dynamodb.Table(table_name)
+        
+        album_id = body['album_id']
+        
+        # Verify album exists
+        album_response = table.get_item(
+            Key={
+                'pk': f'ALBUM#{album_id}',
+                'sk': 'METADATA'
+            }
+        )
+        
+        if 'Item' not in album_response:
+            return {
+                'statusCode': 404,
+                'body': json.dumps({
+                    'error': 'Album not found'
+                })
+            }
         
         s3_key = None
         if 'audio_file' in body:
@@ -70,7 +88,7 @@ def handler(event, context):
             'title': body['title'],
             'artist': body['artist'],
             'duration': int(body['duration']),
-            'album': body.get('album', ''),
+            'album_id': album_id,
             'genre': body.get('genre', ''),
             'created_at': now,
             'updated_at': now
@@ -81,6 +99,20 @@ def handler(event, context):
             item['audio_url'] = f"s3://{bucket_name}/{s3_key}"
         
         table.put_item(Item=item)
+        
+        # Increment album total_songs counter
+        table.update_item(
+            Key={
+                'pk': f'ALBUM#{album_id}',
+                'sk': 'METADATA'
+            },
+            UpdateExpression='SET total_songs = if_not_exists(total_songs, :zero) + :inc, updated_at = :now',
+            ExpressionAttributeValues={
+                ':zero': 0,
+                ':inc': 1,
+                ':now': now
+            }
+        )
         
         return {
             'statusCode': 201,

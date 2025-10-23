@@ -96,6 +96,20 @@ class LambdaStack(Stack):
         
         db.grant_read_data(self.get_songs_handler)
         
+        # Get Songs By Album Handler
+        self.get_songs_by_album_handler = lambda_.Function(
+            self,
+            "GetSongsByAlbumHandler",
+            runtime=lambda_.Runtime.PYTHON_3_11,
+            handler="get_songs_by_album.handler",
+            code=lambda_.Code.from_asset("lambda/songs"),
+            environment={
+                "TABLE_NAME": db.table_name
+            }
+        )
+        
+        db.grant_read_data(self.get_songs_by_album_handler)
+        
         # Get Song Handler
         self.get_song_handler = lambda_.Function(
             self,
@@ -139,6 +153,90 @@ class LambdaStack(Stack):
         
         db.grant_write_data(self.delete_song_handler)
         music_bucket.grant_delete(self.delete_song_handler)
+        
+        # Create Album Handler
+        self.create_album_handler = lambda_.Function(
+            self,
+            "CreateAlbumHandler",
+            runtime=lambda_.Runtime.PYTHON_3_11,
+            handler="create.handler",
+            code=lambda_.Code.from_asset("lambda/albums"),
+            environment={
+                "TABLE_NAME": db.table_name
+            }
+        )
+        
+        db.grant_write_data(self.create_album_handler)
+        
+        # Get Albums Handler
+        self.get_albums_handler = lambda_.Function(
+            self,
+            "GetAlbumsHandler",
+            runtime=lambda_.Runtime.PYTHON_3_11,
+            handler="get_albums.handler",
+            code=lambda_.Code.from_asset("lambda/albums"),
+            environment={
+                "TABLE_NAME": db.table_name
+            }
+        )
+        
+        db.grant_read_data(self.get_albums_handler)
+        
+        # Get Album Handler
+        self.get_album_handler = lambda_.Function(
+            self,
+            "GetAlbumHandler",
+            runtime=lambda_.Runtime.PYTHON_3_11,
+            handler="get_album.handler",
+            code=lambda_.Code.from_asset("lambda/albums"),
+            environment={
+                "TABLE_NAME": db.table_name
+            }
+        )
+        
+        db.grant_read_data(self.get_album_handler)
+        
+        # Get Album Songs Handler
+        self.get_album_songs_handler = lambda_.Function(
+            self,
+            "GetAlbumSongsHandler",
+            runtime=lambda_.Runtime.PYTHON_3_11,
+            handler="get_album_songs.handler",
+            code=lambda_.Code.from_asset("lambda/albums"),
+            environment={
+                "TABLE_NAME": db.table_name
+            }
+        )
+        
+        db.grant_read_data(self.get_album_songs_handler)
+        
+        # Update Album Handler
+        self.update_album_handler = lambda_.Function(
+            self,
+            "UpdateAlbumHandler",
+            runtime=lambda_.Runtime.PYTHON_3_11,
+            handler="update.handler",
+            code=lambda_.Code.from_asset("lambda/albums"),
+            environment={
+                "TABLE_NAME": db.table_name
+            }
+        )
+        
+        db.grant_write_data(self.update_album_handler)
+        
+        # Delete Album Handler
+        self.delete_album_handler = lambda_.Function(
+            self,
+            "DeleteAlbumHandler",
+            runtime=lambda_.Runtime.PYTHON_3_11,
+            handler="delete.handler",
+            code=lambda_.Code.from_asset("lambda/albums"),
+            environment={
+                "TABLE_NAME": db.table_name
+            }
+        )
+        
+        db.grant_write_data(self.delete_album_handler)
         
         # Grant Cognito permissions to auth handlers
         user_pool.grant(self.login_handler, "cognito-idp:AdminInitiateAuth")

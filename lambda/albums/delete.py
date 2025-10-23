@@ -1,25 +1,22 @@
 import json
 import boto3
 import os
-from datetime import datetime
 
-# Initialize DynamoDB and S3
+# Initialize DynamoDB
 dynamodb = boto3.resource('dynamodb')
-s3 = boto3.client('s3')
 table = dynamodb.Table(os.environ['TABLE_NAME'])
-bucket_name = os.environ['BUCKET_NAME']
 
 def handler(event, context):
     """
-    Delete a song by ID.
+    Delete an album by ID.
     Requires admin authorization (checked by API Gateway authorizer).
-    Path parameter: songId
+    Path parameter: albumId
     """
     try:
-        # Get song ID from path parameters
-        song_id = event['pathParameters']['songId']
+        # Get album ID from path parameters
+        album_id = event['pathParameters']['albumId']
         
-        if not song_id:
+        if not album_id:
             return {
                 'statusCode': 400,
                 'headers': {
@@ -27,7 +24,7 @@ def handler(event, context):
                     'Access-Control-Allow-Origin': '*'
                 },
                 'body': json.dumps({
-                    'message': 'Song ID is required'
+                    'message': 'Album ID is required'
                 })
             }
         
@@ -46,14 +43,14 @@ def handler(event, context):
                     'Access-Control-Allow-Origin': '*'
                 },
                 'body': json.dumps({
-                    'message': 'Only admins can delete songs'
+                    'message': 'Only admins can delete albums'
                 })
             }
         
-        # Get the song to find S3 key and album_id
+        # Verify album exists
         response = table.get_item(
             Key={
-                'pk': f'SONG#{song_id}',
+                'pk': f'ALBUM#{album_id}',
                 'sk': 'METADATA'
             }
         )
@@ -66,51 +63,17 @@ def handler(event, context):
                     'Access-Control-Allow-Origin': '*'
                 },
                 'body': json.dumps({
-                    'message': 'Song not found'
+                    'message': 'Album not found'
                 })
             }
-        
-        song = response['Item']
-        s3_key = song.get('s3_key')
-        album_id = song.get('album_id')
-        
-        # Delete from S3 if key exists
-        if s3_key:
-            try:
-                s3.delete_object(
-                    Bucket=bucket_name,
-                    Key=s3_key
-                )
-                print(f"Deleted S3 object: {s3_key}")
-            except Exception as s3_error:
-                print(f"Error deleting S3 object: {str(s3_error)}")
-                # Don't fail if S3 deletion fails, still delete from DB
         
         # Delete from DynamoDB
         table.delete_item(
             Key={
-                'pk': f'SONG#{song_id}',
+                'pk': f'ALBUM#{album_id}',
                 'sk': 'METADATA'
             }
         )
-        
-        # Decrement album total_songs counter if song belonged to an album
-        if album_id:
-            try:
-                table.update_item(
-                    Key={
-                        'pk': f'ALBUM#{album_id}',
-                        'sk': 'METADATA'
-                    },
-                    UpdateExpression='SET total_songs = if_not_exists(total_songs, :one) - :dec, updated_at = :now',
-                    ExpressionAttributeValues={
-                        ':one': 1,
-                        ':dec': 1,
-                        ':now': datetime.utcnow().isoformat()
-                    }
-                )
-            except Exception as update_error:
-                print(f"Warning: Failed to decrement album counter: {str(update_error)}")
         
         return {
             'statusCode': 204,
@@ -127,7 +90,7 @@ def handler(event, context):
                 'Access-Control-Allow-Origin': '*'
             },
             'body': json.dumps({
-                'message': 'Song ID is required in path parameters'
+                'message': 'Album ID is required in path parameters'
             })
         }
     
@@ -140,7 +103,7 @@ def handler(event, context):
                 'Access-Control-Allow-Origin': '*'
             },
             'body': json.dumps({
-                'message': 'Error deleting song',
+                'message': 'Error deleting album',
                 'error': str(e)
             })
         }
