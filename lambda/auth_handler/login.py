@@ -8,6 +8,14 @@ from botocore.exceptions import ClientError
 
 cognito = boto3.client('cognito-idp')
 
+# CORS headers that must be included in every response
+CORS_HEADERS = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+    'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+    'Access-Control-Allow-Credentials': 'true'
+}
+
 def get_secret_hash(username, client_id, client_secret):
     """Generate SECRET_HASH for Cognito API calls when client has a secret"""
     message = bytes(username + client_id, 'utf-8')
@@ -33,13 +41,14 @@ def handler(event, context):
             body = event.get('body', {})
         
         username = body.get('username')
-        password = body.get('password')
+        password = body.get('password')        
         user_pool_id = os.environ.get('USER_POOL_ID')
         client_id = os.environ.get('CLIENT_ID')
         
         if not username or not password:
             return {
                 'statusCode': 400,
+                'headers': CORS_HEADERS,
                 'body': json.dumps({'error': 'username and password are required'})
             }
         
@@ -61,13 +70,13 @@ def handler(event, context):
             AuthFlow='ADMIN_NO_SRP_AUTH',
             AuthParameters=auth_params
         )
-        
-        # Extract tokens
+          # Extract tokens
         auth_result = response.get('AuthenticationResult', {})
         
         return {
             'statusCode': 200,
             'headers': {
+                **CORS_HEADERS,
                 'Content-Type': 'application/json'
             },
             'body': json.dumps({
@@ -76,18 +85,19 @@ def handler(event, context):
                 'id_token': auth_result.get('IdToken'),
                 'refresh_token': auth_result.get('RefreshToken'),
                 'expires_in': auth_result.get('ExpiresIn'),
-                'token_type': auth_result.get('TokenType', 'Bearer')
-            })
+                'token_type': auth_result.get('TokenType', 'Bearer')            })
         }
     
     except cognito.exceptions.NotAuthorizedException:
         return {
             'statusCode': 401,
+            'headers': CORS_HEADERS,
             'body': json.dumps({'error': 'Invalid username or password'})
         }
     except cognito.exceptions.UserNotFoundException:
         return {
             'statusCode': 401,
+            'headers': CORS_HEADERS,
             'body': json.dumps({'error': 'User does not exist'})
         }
     except ClientError as e:
@@ -95,11 +105,13 @@ def handler(event, context):
         if error_code == 'UserNotConfirmedException':
             return {
                 'statusCode': 403,
+                'headers': CORS_HEADERS,
                 'body': json.dumps({'error': 'User account is not confirmed'})
             }
         elif error_code == 'PasswordResetRequiredException':
             return {
                 'statusCode': 403,
+                'headers': CORS_HEADERS,
                 'body': json.dumps({'error': 'Password reset is required'})
             }
         raise
@@ -107,6 +119,7 @@ def handler(event, context):
         print(f"Error: {str(e)}")
         return {
             'statusCode': 500,
+            'headers': CORS_HEADERS,
             'body': json.dumps({
                 'error': 'Internal server error',
                 'message': str(e)

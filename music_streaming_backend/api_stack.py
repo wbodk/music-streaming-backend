@@ -70,11 +70,102 @@ class ApiStack(Stack):
 
         # Auth endpoints (no authentication required)
         self.auth_resource = self.api.root.add_resource("auth")
-        
-        # POST /auth/login - Login endpoint
+          # POST /auth/login - Login endpoint
         self.login_resource = self.auth_resource.add_resource("login")
-        self.login_resource.add_method("POST", apigateway.LambdaIntegration(login_handler),
-            method_responses=[apigateway.MethodResponse(status_code="200", response_parameters={"method.response.header.Access-Control-Allow-Origin": True})])
+        self.login_resource.add_method(
+            "POST", 
+            apigateway.LambdaIntegration(
+                login_handler,
+                integration_responses=[
+                    apigateway.IntegrationResponse(
+                        status_code="200",
+                        response_parameters={
+                            "method.response.header.Access-Control-Allow-Origin": "integration.response.header.Access-Control-Allow-Origin",
+                            "method.response.header.Access-Control-Allow-Headers": "integration.response.header.Access-Control-Allow-Headers",
+                            "method.response.header.Access-Control-Allow-Methods": "integration.response.header.Access-Control-Allow-Methods"
+                        }
+                    ),
+                    apigateway.IntegrationResponse(
+                        status_code="400",
+                        selection_pattern="400",
+                        response_parameters={
+                            "method.response.header.Access-Control-Allow-Origin": "integration.response.header.Access-Control-Allow-Origin",
+                            "method.response.header.Access-Control-Allow-Headers": "integration.response.header.Access-Control-Allow-Headers",
+                            "method.response.header.Access-Control-Allow-Methods": "integration.response.header.Access-Control-Allow-Methods"
+                        }
+                    ),
+                    apigateway.IntegrationResponse(
+                        status_code="401",
+                        selection_pattern="401",
+                        response_parameters={
+                            "method.response.header.Access-Control-Allow-Origin": "integration.response.header.Access-Control-Allow-Origin",
+                            "method.response.header.Access-Control-Allow-Headers": "integration.response.header.Access-Control-Allow-Headers",
+                            "method.response.header.Access-Control-Allow-Methods": "integration.response.header.Access-Control-Allow-Methods"
+                        }
+                    ),
+                    apigateway.IntegrationResponse(
+                        status_code="403",
+                        selection_pattern="403",
+                        response_parameters={
+                            "method.response.header.Access-Control-Allow-Origin": "integration.response.header.Access-Control-Allow-Origin",
+                            "method.response.header.Access-Control-Allow-Headers": "integration.response.header.Access-Control-Allow-Headers",
+                            "method.response.header.Access-Control-Allow-Methods": "integration.response.header.Access-Control-Allow-Methods"
+                        }
+                    ),
+                    apigateway.IntegrationResponse(
+                        status_code="500",
+                        selection_pattern="500",
+                        response_parameters={
+                            "method.response.header.Access-Control-Allow-Origin": "integration.response.header.Access-Control-Allow-Origin",
+                            "method.response.header.Access-Control-Allow-Headers": "integration.response.header.Access-Control-Allow-Headers",
+                            "method.response.header.Access-Control-Allow-Methods": "integration.response.header.Access-Control-Allow-Methods"
+                        }
+                    )
+                ]
+            ),
+            method_responses=[
+                apigateway.MethodResponse(
+                    status_code="200", 
+                    response_parameters={
+                        "method.response.header.Access-Control-Allow-Origin": True,
+                        "method.response.header.Access-Control-Allow-Headers": True,
+                        "method.response.header.Access-Control-Allow-Methods": True
+                    }
+                ),
+                apigateway.MethodResponse(
+                    status_code="400", 
+                    response_parameters={
+                        "method.response.header.Access-Control-Allow-Origin": True,
+                        "method.response.header.Access-Control-Allow-Headers": True,
+                        "method.response.header.Access-Control-Allow-Methods": True
+                    }
+                ),
+                apigateway.MethodResponse(
+                    status_code="401", 
+                    response_parameters={
+                        "method.response.header.Access-Control-Allow-Origin": True,
+                        "method.response.header.Access-Control-Allow-Headers": True,
+                        "method.response.header.Access-Control-Allow-Methods": True
+                    }
+                ),
+                apigateway.MethodResponse(
+                    status_code="403", 
+                    response_parameters={
+                        "method.response.header.Access-Control-Allow-Origin": True,
+                        "method.response.header.Access-Control-Allow-Headers": True,
+                        "method.response.header.Access-Control-Allow-Methods": True
+                    }
+                ),
+                apigateway.MethodResponse(
+                    status_code="500", 
+                    response_parameters={
+                        "method.response.header.Access-Control-Allow-Origin": True,
+                        "method.response.header.Access-Control-Allow-Headers": True,
+                        "method.response.header.Access-Control-Allow-Methods": True
+                    }
+                )
+            ]
+        )
         
         # POST /auth/refresh - Refresh token endpoint
         self.refresh_resource = self.auth_resource.add_resource("refresh")
