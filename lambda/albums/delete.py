@@ -1,6 +1,7 @@
 import json
 import boto3
 import os
+from datetime import datetime
 
 # Initialize DynamoDB
 dynamodb = boto3.resource('dynamodb')
@@ -83,13 +84,77 @@ def handler(event, context):
                 })
             }
         
-        # Delete from DynamoDB
+        album = response['Item']
+        artist_id = album.get('artist_id')
+        
+        # Find all songs in this album using the album-index GSI
+        songs_in_album = []
+        query_params = {
+            'IndexName': 'album-index',
+            'KeyConditionExpression': 'album_id = :album_id',
+            'ExpressionAttributeValues': {
+                ':album_id': album_id
+            }
+        }
+        
+        # Query to get all songs in the album
+        response_songs = table.query(**query_params)
+        songs_in_album = [item for item in response_songs.get('Items', []) if item['pk'].startswith('SONG#')]
+        
+        # Delete all songs in the album
+        for song in songs_in_album:
+            song_id = song['song_id']
+            s3_key = song.get('s3_key')
+            
+            # Try to delete from S3 if key exists
+            if s3_key:
+                try:
+                    s3 = boto3.client('s3')
+                    bucket_name = os.environ.get('BUCKET_NAME')
+                    s3.delete_object(
+                        Bucket=bucket_name,
+                        Key=s3_key
+                    )
+                    print(f"Deleted S3 object: {s3_key}")
+                except Exception as s3_error:
+                    print(f"Warning: Error deleting S3 object: {str(s3_error)}")
+            
+            # Delete song from DynamoDB
+            table.delete_item(
+                Key={
+                    'pk': f'SONG#{song_id}',
+                    'sk': 'METADATA'
+                }
+            )
+        
+        # Delete the album from DynamoDB
         table.delete_item(
             Key={
                 'pk': f'ALBUM#{album_id}',
                 'sk': 'METADATA'
             }
         )
+        
+        # Update artist counters
+        if artist_id:
+            try:
+                # Decrement total_albums by 1
+                # Decrement total_songs by number of songs in album
+                table.update_item(
+                    Key={
+                        'pk': f'ARTIST#{artist_id}',
+                        'sk': 'METADATA'
+                    },
+                    UpdateExpression='SET total_albums = if_not_exists(total_albums, :one) - :one, total_songs = if_not_exists(total_songs, :songs) - :song_count, updated_at = :now',
+                    ExpressionAttributeValues={
+                        ':one': 1,
+                        ':songs': len(songs_in_album),
+                        ':song_count': len(songs_in_album),
+                        ':now': datetime.utcnow().isoformat()
+                    }
+                )
+            except Exception as update_error:
+                print(f"Warning: Failed to update artist counters: {str(update_error)}")
         
         return {
             'statusCode': 204,

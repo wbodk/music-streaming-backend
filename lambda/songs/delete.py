@@ -128,6 +128,25 @@ def handler(event, context):
             except Exception as update_error:
                 print(f"Warning: Failed to decrement album counter: {str(update_error)}")
         
+        # Decrement artist total_songs counter
+        artist_id = song.get('artist_id')
+        if artist_id:
+            try:
+                table.update_item(
+                    Key={
+                        'pk': f'ARTIST#{artist_id}',
+                        'sk': 'METADATA'
+                    },
+                    UpdateExpression='SET total_songs = if_not_exists(total_songs, :one) - :dec, updated_at = :now',
+                    ExpressionAttributeValues={
+                        ':one': 1,
+                        ':dec': 1,
+                        ':now': datetime.utcnow().isoformat()
+                    }
+                )
+            except Exception as update_error:
+                print(f"Warning: Failed to decrement artist counter: {str(update_error)}")
+        
         return {
             'statusCode': 204,
             'headers': {
