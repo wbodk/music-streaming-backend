@@ -2,9 +2,11 @@ import json
 import boto3
 import uuid
 import os
+import base64
 from datetime import datetime
 
 dynamodb = boto3.resource('dynamodb')
+s3 = boto3.client('s3')
 
 def handler(event, context):
     claims = event['requestContext']['authorizer']['claims']
@@ -36,7 +38,30 @@ def handler(event, context):
         now = datetime.utcnow().isoformat()
         
         table_name = os.environ.get('TABLE_NAME')
+        bucket_name = os.environ.get('BUCKET_NAME')
         table = dynamodb.Table(table_name)
+        
+        s3_key = None
+        if 'audio_file' in body:
+            try:
+                audio_data = base64.b64decode(body['audio_file'])
+                file_extension = body.get('file_extension', 'mp3')
+                s3_key = f"songs/{song_id}/audio.{file_extension}"
+                
+                s3.put_object(
+                    Bucket=bucket_name,
+                    Key=s3_key,
+                    Body=audio_data,
+                    ContentType=f'audio/{file_extension}',
+                    Metadata={
+                        'song_id': song_id,
+                        'title': body['title'],
+                        'artist': body['artist']
+                    }
+                )
+                print(f"Successfully uploaded audio file to s3://{bucket_name}/{s3_key}")
+            except Exception as e:
+                print(f"Warning: Failed to upload audio file: {str(e)}")
         
         item = {
             'pk': f'SONG#{song_id}',
@@ -50,6 +75,10 @@ def handler(event, context):
             'created_at': now,
             'updated_at': now
         }
+        
+        if s3_key:
+            item['s3_key'] = s3_key
+            item['audio_url'] = f"s3://{bucket_name}/{s3_key}"
         
         table.put_item(Item=item)
         

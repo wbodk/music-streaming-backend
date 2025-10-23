@@ -31,9 +31,6 @@ class AuthStack(Stack):
                 sign_in_aliases=cognito.SignInAliases(
                     username=True,
                     email=True
-                ),
-                auto_verify=cognito.AutoVerifiedAttrs(
-                    email=True
                 )
             )
 

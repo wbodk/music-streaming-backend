@@ -13,6 +13,10 @@ class ApiStack(Stack):
             scope: Construct,
             construct_id: str,
             create_song_handler: lambda_.Function,
+            login_handler: lambda_.Function,
+            refresh_handler: lambda_.Function,
+            register_handler: lambda_.Function,
+            confirm_handler: lambda_.Function,
             user_pool: cognito.UserPool,
             **kwargs
         ) -> None:
@@ -35,6 +39,30 @@ class ApiStack(Stack):
             )
         )
 
+        # Auth endpoints (no authentication required)
+        self.auth_resource = self.api.root.add_resource("auth")
+        
+        # POST /auth/login - Login endpoint
+        self.login_resource = self.auth_resource.add_resource("login")
+        self.login_resource.add_method("POST", apigateway.LambdaIntegration(login_handler),
+            method_responses=[apigateway.MethodResponse(status_code="200")])
+        
+        # POST /auth/refresh - Refresh token endpoint
+        self.refresh_resource = self.auth_resource.add_resource("refresh")
+        self.refresh_resource.add_method("POST", apigateway.LambdaIntegration(refresh_handler),
+            method_responses=[apigateway.MethodResponse(status_code="200")])
+        
+        # POST /auth/register - Register endpoint
+        self.register_resource = self.auth_resource.add_resource("register")
+        self.register_resource.add_method("POST", apigateway.LambdaIntegration(register_handler),
+            method_responses=[apigateway.MethodResponse(status_code="201")])
+        
+        # POST /auth/confirm - Confirm registration endpoint
+        self.confirm_resource = self.auth_resource.add_resource("confirm")
+        self.confirm_resource.add_method("POST", apigateway.LambdaIntegration(confirm_handler),
+            method_responses=[apigateway.MethodResponse(status_code="200")])
+        
+        # Songs endpoints
         self.songs_resource = self.api.root.add_resource("songs")
         
         self.songs_resource.add_method("GET", apigateway.MockIntegration(
