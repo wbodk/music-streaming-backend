@@ -136,7 +136,7 @@ class MusicStreamingBackendStack(Stack):
             "MusicStreamingAPI",
             rest_api_name="Music Streaming API",
             description="REST API for music streaming CRUD operations",
-            default_cors_preflight_options=apigateway.CorsOptions(
+            =apigateway.CorsOptions(
                 allow_methods=apigateway.Cors.ALL_METHODS,
                 allow_origins=apigateway.Cors.ALL_ORIGINS
             )
