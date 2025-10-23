@@ -13,6 +13,10 @@ class ApiStack(Stack):
             scope: Construct,
             construct_id: str,
             create_song_handler: lambda_.Function,
+            get_songs_handler: lambda_.Function,
+            get_song_handler: lambda_.Function,
+            update_song_handler: lambda_.Function,
+            delete_song_handler: lambda_.Function,
             login_handler: lambda_.Function,
             refresh_handler: lambda_.Function,
             register_handler: lambda_.Function,
@@ -65,9 +69,8 @@ class ApiStack(Stack):
         # Songs endpoints
         self.songs_resource = self.api.root.add_resource("songs")
         
-        self.songs_resource.add_method("GET", apigateway.MockIntegration(
-            integration_responses=[apigateway.IntegrationResponse(status_code="200")]
-        ), method_responses=[apigateway.MethodResponse(status_code="200")])
+        self.songs_resource.add_method("GET", apigateway.LambdaIntegration(get_songs_handler),
+            method_responses=[apigateway.MethodResponse(status_code="200")])
         
         self.songs_resource.add_method("POST", apigateway.LambdaIntegration(create_song_handler),
             authorization_type=apigateway.AuthorizationType.COGNITO,
@@ -76,14 +79,15 @@ class ApiStack(Stack):
         
         self.song_resource = self.songs_resource.add_resource("{songId}")
         
-        self.song_resource.add_method("GET", apigateway.MockIntegration(
-            integration_responses=[apigateway.IntegrationResponse(status_code="200")]
-        ), method_responses=[apigateway.MethodResponse(status_code="200")])
+        self.song_resource.add_method("GET", apigateway.LambdaIntegration(get_song_handler),
+            method_responses=[apigateway.MethodResponse(status_code="200")])
         
-        self.song_resource.add_method("PUT", apigateway.MockIntegration(
-            integration_responses=[apigateway.IntegrationResponse(status_code="200")]
-        ), method_responses=[apigateway.MethodResponse(status_code="200")])
+        self.song_resource.add_method("PUT", apigateway.LambdaIntegration(update_song_handler),
+            authorization_type=apigateway.AuthorizationType.COGNITO,
+            authorizer=self.cognito_authorizer,
+            method_responses=[apigateway.MethodResponse(status_code="200")])
         
-        self.song_resource.add_method("DELETE", apigateway.MockIntegration(
-            integration_responses=[apigateway.IntegrationResponse(status_code="204")]
-        ), method_responses=[apigateway.MethodResponse(status_code="204")]) 
+        self.song_resource.add_method("DELETE", apigateway.LambdaIntegration(delete_song_handler),
+            authorization_type=apigateway.AuthorizationType.COGNITO,
+            authorizer=self.cognito_authorizer,
+            method_responses=[apigateway.MethodResponse(status_code="204")]) 
