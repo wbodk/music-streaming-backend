@@ -8,6 +8,14 @@ from botocore.exceptions import ClientError
 
 cognito = boto3.client('cognito-idp')
 
+# CORS headers that must be included in every response
+CORS_HEADERS = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+    'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+    'Access-Control-Allow-Credentials': 'true'
+}
+
 def get_secret_hash(username, client_id, client_secret):
     """Generate SECRET_HASH for Cognito API calls when client has a secret"""
     message = bytes(username + client_id, 'utf-8')
@@ -48,10 +56,10 @@ def handler(event, context):
         # Validate required fields
         required_fields = ['username', 'password', 'email', 'given_name', 'family_name', 'birthdate']
         missing_fields = [field for field in required_fields if not body.get(field)]
-        
         if missing_fields:
             return {
                 'statusCode': 400,
+                'headers': CORS_HEADERS,
                 'body': json.dumps({
                     'error': 'Missing required fields',
                     'required': required_fields,
@@ -79,10 +87,10 @@ def handler(event, context):
         
         # Sign up user
         response = cognito.sign_up(**sign_up_params)
-        
         return {
             'statusCode': 201,
             'headers': {
+                **CORS_HEADERS,
                 'Content-Type': 'application/json'
             },
             'body': json.dumps({
@@ -92,15 +100,16 @@ def handler(event, context):
                 'email': email
             })
         }
-    
-    except cognito.exceptions.UsernameExistsException:
+      except cognito.exceptions.UsernameExistsException:
         return {
             'statusCode': 409,
+            'headers': CORS_HEADERS,
             'body': json.dumps({'error': 'Username already exists'})
         }
     except cognito.exceptions.InvalidPasswordException as e:
         return {
             'statusCode': 400,
+            'headers': CORS_HEADERS,
             'body': json.dumps({
                 'error': 'Invalid password',
                 'message': str(e)
@@ -108,25 +117,26 @@ def handler(event, context):
         }
     except ClientError as e:
         error_code = e.response['Error']['Code']
-        
         if error_code == 'UserLambdaValidationException':
             return {
                 'statusCode': 400,
+                'headers': CORS_HEADERS,
                 'body': json.dumps({'error': 'Validation failed: ' + str(e)})
             }
         elif error_code == 'InvalidParameterException':
             return {
                 'statusCode': 400,
+                'headers': CORS_HEADERS,
                 'body': json.dumps({'error': 'Invalid parameter: ' + str(e)})
             }
         
         print(f"Cognito error: {error_code} - {str(e)}")
         raise
-    
     except Exception as e:
         print(f"Error: {str(e)}")
         return {
             'statusCode': 500,
+            'headers': CORS_HEADERS,
             'body': json.dumps({
                 'error': 'Internal server error',
                 'message': str(e)

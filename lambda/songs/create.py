@@ -8,13 +8,21 @@ from datetime import datetime
 dynamodb = boto3.resource('dynamodb')
 s3 = boto3.client('s3')
 
+# CORS headers that must be included in every response
+CORS_HEADERS = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+    'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+    'Access-Control-Allow-Credentials': 'true'
+}
+
 def handler(event, context):
     claims = event['requestContext']['authorizer']['claims']
     groups = claims.get('cognito:groups', [])
-    
     if 'admin' not in groups:
         return {
             'statusCode': 403,
+            'headers': CORS_HEADERS,
             'body': json.dumps({'error': 'Forbidden: Admin access required'})
         }
 
@@ -24,10 +32,11 @@ def handler(event, context):
         else:
             body = event.get('body', {})
         
-        required_fields = ['title', 'artist_id', 'duration', 'album_id']
+        required_fields = ['title', 'artist_id', 'duration', 'album_id']        
         if not all(field in body for field in required_fields):
             return {
                 'statusCode': 400,
+                'headers': CORS_HEADERS,
                 'body': json.dumps({
                     'error': 'Missing required fields',
                     'required': required_fields
@@ -51,10 +60,10 @@ def handler(event, context):
                 'sk': 'METADATA'
             }
         )
-        
         if 'Item' not in album_response:
             return {
                 'statusCode': 404,
+                'headers': CORS_HEADERS,
                 'body': json.dumps({
                     'error': 'Album not found'
                 })
@@ -67,10 +76,10 @@ def handler(event, context):
                 'sk': 'METADATA'
             }
         )
-        
         if 'Item' not in artist_response:
             return {
                 'statusCode': 404,
+                'headers': CORS_HEADERS,
                 'body': json.dumps({
                     'error': 'Artist not found'
                 })
@@ -147,10 +156,10 @@ def handler(event, context):
                 ':now': now
             }
         )
-        
         return {
             'statusCode': 201,
             'headers': {
+                **CORS_HEADERS,
                 'Content-Type': 'application/json'
             },
             'body': json.dumps({
@@ -158,11 +167,11 @@ def handler(event, context):
                 'song': item
             })
         }
-        
     except Exception as e:
         print(f"Error: {str(e)}")
         return {
             'statusCode': 500,
+            'headers': CORS_HEADERS,
             'body': json.dumps({
                 'error': 'Internal server error',
                 'message': str(e)
