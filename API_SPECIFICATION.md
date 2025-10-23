@@ -3,6 +3,7 @@
 **Table of Contents**
 - [Authentication Endpoints](#authentication-endpoints)
 - [Artist Endpoints](#artist-endpoints)
+  - [Artist Filtering](#artist-filtering)
 - [Album Endpoints](#album-endpoints)
 - [Song Endpoints](#song-endpoints)
 - [Error Responses](#error-responses)
@@ -310,6 +311,106 @@ artistId: string (required, UUID)
 **Error Responses:**
 - `400` - Invalid artist ID format
 - `403` - Not admin
+- `404` - Artist not found
+- `500` - Internal server error
+
+---
+
+## Artist Filtering
+
+### GET /artists/{artistId}/albums
+
+Retrieve all albums by a specific artist with pagination.
+
+**Path Parameters:**
+```
+artistId: string (required, UUID)
+```
+
+**Query Parameters:**
+```
+limit: integer (optional, default 20, max 100)
+last_key: string (optional, JSON-encoded pagination token)
+```
+
+**Response (200):**
+```json
+{
+  "message": "Albums retrieved successfully",
+  "artist_id": "550e8400-e29b-41d4-a716-446655440000",
+  "count": 3,
+  "albums": [
+    {
+      "pk": "ALBUM#660e8400-e29b-41d4-a716-446655440001",
+      "sk": "METADATA",
+      "album_id": "660e8400-e29b-41d4-a716-446655440001",
+      "title": "Thriller",
+      "artist_id": "550e8400-e29b-41d4-a716-446655440000",
+      "artist_name": "Michael Jackson",
+      "release_date": "1982-11-30",
+      "genre": "Pop",
+      "description": "Best-selling album of all time",
+      "cover_image_url": "https://example.com/thriller.jpg",
+      "total_songs": 3,
+      "created_at": "2025-10-23T10:30:00.123456",
+      "updated_at": "2025-10-23T10:30:00.123456"
+    }
+  ],
+  "last_key": null
+}
+```
+
+**Error Responses:**
+- `400` - Invalid artist ID format
+- `404` - Artist not found
+- `500` - Internal server error
+
+---
+
+### GET /artists/{artistId}/songs
+
+Retrieve all songs by a specific artist with pagination.
+
+**Path Parameters:**
+```
+artistId: string (required, UUID)
+```
+
+**Query Parameters:**
+```
+limit: integer (optional, default 20, max 100)
+last_key: string (optional, JSON-encoded pagination token)
+```
+
+**Response (200):**
+```json
+{
+  "message": "Songs retrieved successfully",
+  "artist_id": "550e8400-e29b-41d4-a716-446655440000",
+  "count": 5,
+  "songs": [
+    {
+      "pk": "SONG#660e8400-e29b-41d4-a716-446655440001",
+      "sk": "METADATA",
+      "song_id": "660e8400-e29b-41d4-a716-446655440001",
+      "title": "Billie Jean",
+      "artist_id": "550e8400-e29b-41d4-a716-446655440000",
+      "artist_name": "Michael Jackson",
+      "duration": 294,
+      "album_id": "660e8400-e29b-41d4-a716-446655440000",
+      "genre": "Pop",
+      "s3_key": "songs/660e8400-e29b-41d4-a716-446655440001/audio.mp3",
+      "audio_url": "s3://music-streaming-bucket-218394692060/songs/660e8400-e29b-41d4-a716-446655440001/audio.mp3",
+      "created_at": "2025-10-23T10:35:00.123456",
+      "updated_at": "2025-10-23T10:35:00.123456"
+    }
+  ],
+  "last_key": null
+}
+```
+
+**Error Responses:**
+- `400` - Invalid artist ID format
 - `404` - Artist not found
 - `500` - Internal server error
 
