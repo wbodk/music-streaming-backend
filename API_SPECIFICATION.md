@@ -2,6 +2,7 @@
 
 **Table of Contents**
 - [Authentication Endpoints](#authentication-endpoints)
+- [Artist Endpoints](#artist-endpoints)
 - [Album Endpoints](#album-endpoints)
 - [Song Endpoints](#song-endpoints)
 - [Error Responses](#error-responses)
@@ -127,6 +128,194 @@ Refresh expired tokens using a refresh token.
 
 ---
 
+## Artist Endpoints
+
+### GET /artists
+
+Retrieve all artists with pagination.
+
+**Query Parameters:**
+```
+limit: integer (optional, default 20, max 100)
+last_key: string (optional, JSON-encoded pagination token)
+```
+
+**Response (200):**
+```json
+{
+  "message": "Artists retrieved successfully",
+  "count": 5,
+  "artists": [
+    {
+      "pk": "ARTIST#550e8400-e29b-41d4-a716-446655440000",
+      "sk": "METADATA",
+      "artist_id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Michael Jackson",
+      "biography": "King of Pop",
+      "profile_image_url": "https://example.com/michael.jpg",
+      "genre": "Pop",
+      "country": "USA",
+      "total_albums": 10,
+      "total_songs": 150,
+      "created_at": "2025-10-23T10:30:00.123456",
+      "updated_at": "2025-10-23T10:30:00.123456"
+    }
+  ],
+  "last_key": null
+}
+```
+
+**Error Responses:**
+- `500` - Internal server error
+
+---
+
+### POST /artists
+
+Create a new artist. **Requires admin authorization.**
+
+**Request Body:**
+```json
+{
+  "name": "string (required)",
+  "biography": "string (optional)",
+  "profile_image_url": "string (optional)",
+  "genre": "string (optional)",
+  "country": "string (optional)"
+}
+```
+
+**Response (201):**
+```json
+{
+  "message": "Artist created successfully",
+  "artist": {
+    "pk": "ARTIST#550e8400-e29b-41d4-a716-446655440000",
+    "sk": "METADATA",
+    "artist_id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "Michael Jackson",
+    "biography": "King of Pop",
+    "profile_image_url": "https://example.com/michael.jpg",
+    "genre": "Pop",
+    "country": "USA",
+    "total_albums": 0,
+    "total_songs": 0,
+    "created_at": "2025-10-23T10:30:00.123456",
+    "updated_at": "2025-10-23T10:30:00.123456"
+  }
+}
+```
+
+**Error Responses:**
+- `400` - Missing required fields
+- `403` - Not admin (missing admin group)
+- `500` - Internal server error
+
+---
+
+### GET /artists/{artistId}
+
+Retrieve a specific artist by ID.
+
+**Path Parameters:**
+```
+artistId: string (required, UUID)
+```
+
+**Response (200):**
+```json
+{
+  "message": "Artist retrieved successfully",
+  "artist": {
+    "pk": "ARTIST#550e8400-e29b-41d4-a716-446655440000",
+    "sk": "METADATA",
+    "artist_id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "Michael Jackson",
+    "biography": "King of Pop",
+    "profile_image_url": "https://example.com/michael.jpg",
+    "genre": "Pop",
+    "country": "USA",
+    "total_albums": 10,
+    "total_songs": 150,
+    "created_at": "2025-10-23T10:30:00.123456",
+    "updated_at": "2025-10-23T10:30:00.123456"
+  }
+}
+```
+
+**Error Responses:**
+- `400` - Invalid artist ID format
+- `404` - Artist not found
+- `500` - Internal server error
+
+---
+
+### PUT /artists/{artistId}
+
+Update artist metadata. **Requires admin authorization.**
+
+**Request Body:**
+```json
+{
+  "name": "string (optional)",
+  "biography": "string (optional)",
+  "profile_image_url": "string (optional)",
+  "genre": "string (optional)",
+  "country": "string (optional)"
+}
+```
+
+**Response (200):**
+```json
+{
+  "message": "Artist updated successfully",
+  "artist": {
+    "pk": "ARTIST#550e8400-e29b-41d4-a716-446655440000",
+    "sk": "METADATA",
+    "artist_id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "Michael Jackson",
+    "biography": "King of Pop - Updated",
+    "profile_image_url": "https://example.com/michael.jpg",
+    "genre": "Pop/Rock",
+    "country": "USA",
+    "total_albums": 10,
+    "total_songs": 150,
+    "created_at": "2025-10-23T10:30:00.123456",
+    "updated_at": "2025-10-23T11:45:00.654321"
+  }
+}
+```
+
+**Error Responses:**
+- `400` - No valid fields to update
+- `403` - Not admin
+- `404` - Artist not found
+- `500` - Internal server error
+
+---
+
+### DELETE /artists/{artistId}
+
+Delete an artist. **Requires admin authorization.**
+
+**Path Parameters:**
+```
+artistId: string (required, UUID)
+```
+
+**Response (204):**
+```
+(no content)
+```
+
+**Error Responses:**
+- `400` - Invalid artist ID format
+- `403` - Not admin
+- `404` - Artist not found
+- `500` - Internal server error
+
+---
+
 ## Album Endpoints
 
 ### GET /albums
@@ -150,7 +339,8 @@ last_key: string (optional, JSON-encoded pagination token)
       "sk": "METADATA",
       "album_id": "550e8400-e29b-41d4-a716-446655440000",
       "title": "Thriller",
-      "artist": "Michael Jackson",
+      "artist_id": "660e8400-e29b-41d4-a716-446655440001",
+      "artist_name": "Michael Jackson",
       "release_date": "1982-11-30",
       "genre": "Pop",
       "description": "Best-selling album of all time",
@@ -177,7 +367,7 @@ Create a new album. **Requires admin authorization.**
 ```json
 {
   "title": "string (required)",
-  "artist": "string (required)",
+  "artist_id": "string (required, UUID of artist)",
   "release_date": "string (optional, YYYY-MM-DD)",
   "genre": "string (optional)",
   "description": "string (optional)",
@@ -387,9 +577,10 @@ last_key: string (optional, JSON-encoded pagination token)
       "sk": "METADATA",
       "song_id": "660e8400-e29b-41d4-a716-446655440001",
       "title": "Billie Jean",
-      "artist": "Michael Jackson",
+      "artist_id": "550e8400-e29b-41d4-a716-446655440000",
+      "artist_name": "Michael Jackson",
       "duration": 294,
-      "album_id": "550e8400-e29b-41d4-a716-446655440000",
+      "album_id": "660e8400-e29b-41d4-a716-446655440000",
       "genre": "Pop",
       "s3_key": "songs/660e8400-e29b-41d4-a716-446655440001/audio.mp3",
       "audio_url": "s3://music-streaming-bucket-218394692060/songs/660e8400-e29b-41d4-a716-446655440001/audio.mp3",
@@ -403,6 +594,24 @@ last_key: string (optional, JSON-encoded pagination token)
 
 **Error Responses:**
 - `500` - Internal server error
+
+---
+
+### POST /songs
+
+Create a new song with audio file. **Requires admin authorization.**
+
+**Request Body:**
+```json
+{
+  "title": "string (required)",
+  "artist_id": "string (required, UUID of artist)",
+  "duration": "integer (required, seconds)",
+  "album_id": "string (required, UUID)",
+  "genre": "string (optional)",
+  "audio_file": "string (optional, base64-encoded audio)",
+  "file_extension": "string (optional, default 'mp3')"
+````
 
 ---
 
@@ -470,9 +679,10 @@ songId: string (required, UUID)
     "sk": "METADATA",
     "song_id": "660e8400-e29b-41d4-a716-446655440001",
     "title": "Billie Jean",
-    "artist": "Michael Jackson",
+    "artist_id": "550e8400-e29b-41d4-a716-446655440000",
+    "artist_name": "Michael Jackson",
     "duration": 294,
-    "album_id": "550e8400-e29b-41d4-a716-446655440000",
+    "album_id": "660e8400-e29b-41d4-a716-446655440000",
     "genre": "Pop",
     "s3_key": "songs/660e8400-e29b-41d4-a716-446655440001/audio.mp3",
     "audio_url": "s3://music-streaming-bucket-218394692060/songs/660e8400-e29b-41d4-a716-446655440001/audio.mp3",
@@ -481,6 +691,58 @@ songId: string (required, UUID)
   }
 }
 ```
+
+**Error Responses:**
+- `400` - Invalid song ID format
+- `404` - Song not found
+- `500` - Internal server error
+
+---
+
+### PUT /songs/{songId}
+
+Update song metadata. **Requires admin authorization.**
+
+**Request Body:**
+```json
+{
+  "title": "string (optional)",
+  "duration": "integer (optional, seconds)",
+  "genre": "string (optional)"
+}
+```
+
+**Response (200):**
+```json
+{
+  "message": "Song updated successfully",
+  "song": {
+    "pk": "SONG#660e8400-e29b-41d4-a716-446655440001",
+    "sk": "METADATA",
+    "song_id": "660e8400-e29b-41d4-a716-446655440001",
+    "title": "Billie Jean",
+    "artist_id": "550e8400-e29b-41d4-a716-446655440000",
+    "artist_name": "Michael Jackson",
+    "duration": 300,
+    "album_id": "660e8400-e29b-41d4-a716-446655440000",
+    "genre": "Pop/Rock",
+    "s3_key": "songs/660e8400-e29b-41d4-a716-446655440001/audio.mp3",
+    "audio_url": "s3://music-streaming-bucket-218394692060/songs/660e8400-e29b-41d4-a716-446655440001/audio.mp3",
+    "created_at": "2025-10-23T10:35:00.123456",
+    "updated_at": "2025-10-23T11:50:00.654321"
+  }
+}
+```
+
+**Error Responses:**
+- `400` - No valid fields to update or invalid data
+- `403` - Not admin
+- `404` - Song not found
+- `500` - Internal server error
+
+---
+
+````
 
 **Error Responses:**
 - `400` - Invalid song ID format

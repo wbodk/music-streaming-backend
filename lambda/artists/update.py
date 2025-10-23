@@ -9,26 +9,10 @@ table = dynamodb.Table(os.environ['TABLE_NAME'])
 
 def handler(event, context):
     """
-    Update a song's metadata.
+    Update an artist's metadata.
     Requires admin authorization (checked by API Gateway authorizer).
-    Path parameter: songId
     """
     try:
-        # Get song ID from path parameters
-        song_id = event['pathParameters']['songId']
-        
-        if not song_id:
-            return {
-                'statusCode': 400,
-                'headers': {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
-                },
-                'body': json.dumps({
-                    'message': 'Song ID is required'
-                })
-            }
-        
         # Verify user is admin
         authorizer = event.get('requestContext', {}).get('authorizer', {})
         
@@ -55,7 +39,22 @@ def handler(event, context):
                     'Access-Control-Allow-Origin': '*'
                 },
                 'body': json.dumps({
-                    'message': 'Only admins can update songs'
+                    'message': 'Only admins can update artists'
+                })
+            }
+        
+        # Get artist ID from path parameters
+        artist_id = event.get('pathParameters', {}).get('artistId')
+        
+        if not artist_id:
+            return {
+                'statusCode': 400,
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                'body': json.dumps({
+                    'message': 'Missing artist ID'
                 })
             }
         
@@ -74,10 +73,10 @@ def handler(event, context):
                 })
             }
         
-        # Verify song exists
+        # Check if artist exists
         response = table.get_item(
             Key={
-                'pk': f'SONG#{song_id}',
+                'pk': f'ARTIST#{artist_id}',
                 'sk': 'METADATA'
             }
         )
@@ -90,25 +89,25 @@ def handler(event, context):
                     'Access-Control-Allow-Origin': '*'
                 },
                 'body': json.dumps({
-                    'message': 'Song not found'
+                    'message': 'Artist not found'
                 })
             }
         
-        existing_song = response['Item']
+        artist = response['Item']
         
         # Build update expression
-        update_attrs = {}
-        expression_parts = []
+        update_expression_parts = []
+        expression_attribute_values = {}
         
-        # Allow updating these fields only
-        allowed_fields = ['title', 'artist', 'album', 'genre', 'duration']
+        # Updateable fields
+        updateable_fields = ['name', 'biography', 'profile_image_url', 'genre', 'country']
         
-        for field in allowed_fields:
+        for field in updateable_fields:
             if field in body:
-                update_attrs[f':{field}'] = body[field]
-                expression_parts.append(f'{field} = :{field}')
+                update_expression_parts.append(f'{field} = :{field}')
+                expression_attribute_values[f':{field}'] = body[field]
         
-        if not expression_parts:
+        if not update_expression_parts:
             return {
                 'statusCode': 400,
                 'headers': {
@@ -116,29 +115,29 @@ def handler(event, context):
                     'Access-Control-Allow-Origin': '*'
                 },
                 'body': json.dumps({
-                    'message': f'No valid fields to update. Allowed fields: {", ".join(allowed_fields)}'
+                    'message': 'No valid fields to update'
                 })
             }
         
-        # Add updated_at timestamp
-        update_attrs[':updated_at'] = datetime.utcnow().isoformat()
-        expression_parts.append('updated_at = :updated_at')
-        
-        update_expression = 'SET ' + ', '.join(expression_parts)
+        # Add updated_at
+        timestamp = datetime.utcnow().isoformat()
+        update_expression_parts.append('updated_at = :updated_at')
+        expression_attribute_values[':updated_at'] = timestamp
         
         # Update the item
-        response = table.update_item(
+        update_expression = 'SET ' + ', '.join(update_expression_parts)
+        
+        update_response = table.update_item(
             Key={
-                'pk': f'SONG#{song_id}',
+                'pk': f'ARTIST#{artist_id}',
                 'sk': 'METADATA'
             },
             UpdateExpression=update_expression,
-            ExpressionAttributeValues=update_attrs,
+            ExpressionAttributeValues=expression_attribute_values,
             ReturnValues='ALL_NEW'
         )
         
-        updated_song = response['Attributes']
-        song_dict = json.loads(json.dumps(updated_song, default=str))
+        updated_artist = json.loads(json.dumps(update_response['Attributes'], default=str))
         
         return {
             'statusCode': 200,
@@ -147,20 +146,8 @@ def handler(event, context):
                 'Access-Control-Allow-Origin': '*'
             },
             'body': json.dumps({
-                'message': 'Song updated successfully',
-                'song': song_dict
-            })
-        }
-    
-    except KeyError:
-        return {
-            'statusCode': 400,
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
-            },
-            'body': json.dumps({
-                'message': 'Song ID is required in path parameters'
+                'message': 'Artist updated successfully',
+                'artist': updated_artist
             })
         }
     
@@ -173,7 +160,7 @@ def handler(event, context):
                 'Access-Control-Allow-Origin': '*'
             },
             'body': json.dumps({
-                'message': 'Error updating song',
+                'message': 'Error updating artist',
                 'error': str(e)
             })
         }

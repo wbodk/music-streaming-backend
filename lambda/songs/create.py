@@ -24,7 +24,7 @@ def handler(event, context):
         else:
             body = event.get('body', {})
         
-        required_fields = ['title', 'artist', 'duration', 'album_id']
+        required_fields = ['title', 'artist_id', 'duration', 'album_id']
         if not all(field in body for field in required_fields):
             return {
                 'statusCode': 400,
@@ -42,6 +42,7 @@ def handler(event, context):
         table = dynamodb.Table(table_name)
         
         album_id = body['album_id']
+        artist_id = body['artist_id']
         
         # Verify album exists
         album_response = table.get_item(
@@ -58,6 +59,24 @@ def handler(event, context):
                     'error': 'Album not found'
                 })
             }
+        
+        # Verify artist exists
+        artist_response = table.get_item(
+            Key={
+                'pk': f'ARTIST#{artist_id}',
+                'sk': 'METADATA'
+            }
+        )
+        
+        if 'Item' not in artist_response:
+            return {
+                'statusCode': 404,
+                'body': json.dumps({
+                    'error': 'Artist not found'
+                })
+            }
+        
+        artist = artist_response['Item']
         
         s3_key = None
         if 'audio_file' in body:
@@ -86,7 +105,8 @@ def handler(event, context):
             'sk': 'METADATA',
             'song_id': song_id,
             'title': body['title'],
-            'artist': body['artist'],
+            'artist_id': artist_id,
+            'artist_name': artist['name'],
             'duration': int(body['duration']),
             'album_id': album_id,
             'genre': body.get('genre', ''),
@@ -104,6 +124,20 @@ def handler(event, context):
         table.update_item(
             Key={
                 'pk': f'ALBUM#{album_id}',
+                'sk': 'METADATA'
+            },
+            UpdateExpression='SET total_songs = if_not_exists(total_songs, :zero) + :inc, updated_at = :now',
+            ExpressionAttributeValues={
+                ':zero': 0,
+                ':inc': 1,
+                ':now': now
+            }
+        )
+        
+        # Increment artist total_songs counter
+        table.update_item(
+            Key={
+                'pk': f'ARTIST#{artist_id}',
                 'sk': 'METADATA'
             },
             UpdateExpression='SET total_songs = if_not_exists(total_songs, :zero) + :inc, updated_at = :now',

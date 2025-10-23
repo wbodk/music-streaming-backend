@@ -8,31 +8,12 @@ table = dynamodb.Table(os.environ['TABLE_NAME'])
 
 def handler(event, context):
     """
-    Delete an album by ID.
+    Delete an artist.
     Requires admin authorization (checked by API Gateway authorizer).
-    Path parameter: albumId
     """
     try:
-        print(f"Delete album event: {json.dumps(event, default=str)}")
-        
-        # Get album ID from path parameters
-        album_id = event['pathParameters']['albumId']
-        
-        if not album_id:
-            return {
-                'statusCode': 400,
-                'headers': {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
-                },
-                'body': json.dumps({
-                    'message': 'Album ID is required'
-                })
-            }
-        
         # Verify user is admin
         authorizer = event.get('requestContext', {}).get('authorizer', {})
-        print(f"Authorizer context: {json.dumps(authorizer, default=str)}")
         
         # Try to get groups from different possible locations
         groups = []
@@ -49,8 +30,6 @@ def handler(event, context):
         if isinstance(groups, str):
             groups = [groups]
         
-        print(f"User groups: {groups}")
-        
         if 'admin' not in groups:
             return {
                 'statusCode': 403,
@@ -59,14 +38,29 @@ def handler(event, context):
                     'Access-Control-Allow-Origin': '*'
                 },
                 'body': json.dumps({
-                    'message': 'Only admins can delete albums'
+                    'message': 'Only admins can delete artists'
                 })
             }
         
-        # Verify album exists
+        # Get artist ID from path parameters
+        artist_id = event.get('pathParameters', {}).get('artistId')
+        
+        if not artist_id:
+            return {
+                'statusCode': 400,
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                'body': json.dumps({
+                    'message': 'Missing artist ID'
+                })
+            }
+        
+        # Check if artist exists
         response = table.get_item(
             Key={
-                'pk': f'ALBUM#{album_id}',
+                'pk': f'ARTIST#{artist_id}',
                 'sk': 'METADATA'
             }
         )
@@ -79,14 +73,14 @@ def handler(event, context):
                     'Access-Control-Allow-Origin': '*'
                 },
                 'body': json.dumps({
-                    'message': 'Album not found'
+                    'message': 'Artist not found'
                 })
             }
         
-        # Delete from DynamoDB
+        # Delete the artist
         table.delete_item(
             Key={
-                'pk': f'ALBUM#{album_id}',
+                'pk': f'ARTIST#{artist_id}',
                 'sk': 'METADATA'
             }
         )
@@ -98,18 +92,6 @@ def handler(event, context):
             }
         }
     
-    except KeyError:
-        return {
-            'statusCode': 400,
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
-            },
-            'body': json.dumps({
-                'message': 'Album ID is required in path parameters'
-            })
-        }
-    
     except Exception as e:
         print(f"Error: {str(e)}")
         return {
@@ -119,7 +101,7 @@ def handler(event, context):
                 'Access-Control-Allow-Origin': '*'
             },
             'body': json.dumps({
-                'message': 'Error deleting album',
+                'message': 'Error deleting artist',
                 'error': str(e)
             })
         }

@@ -31,8 +31,19 @@ def handler(event, context):
         
         # Verify user is admin
         authorizer = event.get('requestContext', {}).get('authorizer', {})
-        groups = authorizer.get('claims', {}).get('cognito:groups', [])
         
+        # Try to get groups from different possible locations
+        groups = []
+        
+        # First try from claims (standard Cognito)
+        if 'claims' in authorizer:
+            groups = authorizer.get('claims', {}).get('cognito:groups', [])
+        
+        # If not found, check if groups are at top level
+        if not groups and 'cognito:groups' in authorizer:
+            groups = authorizer.get('cognito:groups', [])
+        
+        # Handle case where groups is a string instead of list
         if isinstance(groups, str):
             groups = [groups]
         
