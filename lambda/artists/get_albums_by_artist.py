@@ -71,8 +71,10 @@ def handler(event, context):
         query_params = {
             'IndexName': 'artist-id-index',
             'KeyConditionExpression': 'artist_id = :artist_id',
+            'FilterExpression': 'begins_with(pk, :album_prefix)',
             'ExpressionAttributeValues': {
-                ':artist_id': artist_id
+                ':artist_id': artist_id,
+                ':album_prefix': 'ALBUM#'
             },
             'Limit': limit
         }
