@@ -166,32 +166,345 @@ class ApiStack(Stack):
                 )
             ]
         )
-        
-        # POST /auth/refresh - Refresh token endpoint
+          # POST /auth/refresh - Refresh token endpoint
         self.refresh_resource = self.auth_resource.add_resource("refresh")
-        self.refresh_resource.add_method("POST", apigateway.LambdaIntegration(refresh_handler),
-            method_responses=[apigateway.MethodResponse(status_code="200", response_parameters={"method.response.header.Access-Control-Allow-Origin": True})])
-        
-        # POST /auth/register - Register endpoint
+        self.refresh_resource.add_method(
+            "POST", 
+            apigateway.LambdaIntegration(
+                refresh_handler,
+                integration_responses=[
+                    apigateway.IntegrationResponse(
+                        status_code="200",
+                        response_parameters={
+                            "method.response.header.Access-Control-Allow-Origin": "integration.response.header.Access-Control-Allow-Origin",
+                            "method.response.header.Access-Control-Allow-Headers": "integration.response.header.Access-Control-Allow-Headers",
+                            "method.response.header.Access-Control-Allow-Methods": "integration.response.header.Access-Control-Allow-Methods"
+                        }
+                    ),
+                    apigateway.IntegrationResponse(
+                        status_code="400",
+                        selection_pattern="400",
+                        response_parameters={
+                            "method.response.header.Access-Control-Allow-Origin": "integration.response.header.Access-Control-Allow-Origin",
+                            "method.response.header.Access-Control-Allow-Headers": "integration.response.header.Access-Control-Allow-Headers",
+                            "method.response.header.Access-Control-Allow-Methods": "integration.response.header.Access-Control-Allow-Methods"
+                        }
+                    ),
+                    apigateway.IntegrationResponse(
+                        status_code="401",
+                        selection_pattern="401",
+                        response_parameters={
+                            "method.response.header.Access-Control-Allow-Origin": "integration.response.header.Access-Control-Allow-Origin",
+                            "method.response.header.Access-Control-Allow-Headers": "integration.response.header.Access-Control-Allow-Headers",
+                            "method.response.header.Access-Control-Allow-Methods": "integration.response.header.Access-Control-Allow-Methods"
+                        }
+                    ),
+                    apigateway.IntegrationResponse(
+                        status_code="500",
+                        selection_pattern="500",
+                        response_parameters={
+                            "method.response.header.Access-Control-Allow-Origin": "integration.response.header.Access-Control-Allow-Origin",
+                            "method.response.header.Access-Control-Allow-Headers": "integration.response.header.Access-Control-Allow-Headers",
+                            "method.response.header.Access-Control-Allow-Methods": "integration.response.header.Access-Control-Allow-Methods"
+                        }
+                    )
+                ]
+            ),
+            method_responses=[
+                apigateway.MethodResponse(
+                    status_code="200", 
+                    response_parameters={
+                        "method.response.header.Access-Control-Allow-Origin": True,
+                        "method.response.header.Access-Control-Allow-Headers": True,
+                        "method.response.header.Access-Control-Allow-Methods": True
+                    }
+                ),
+                apigateway.MethodResponse(
+                    status_code="400", 
+                    response_parameters={
+                        "method.response.header.Access-Control-Allow-Origin": True,
+                        "method.response.header.Access-Control-Allow-Headers": True,
+                        "method.response.header.Access-Control-Allow-Methods": True
+                    }
+                ),
+                apigateway.MethodResponse(
+                    status_code="401", 
+                    response_parameters={
+                        "method.response.header.Access-Control-Allow-Origin": True,
+                        "method.response.header.Access-Control-Allow-Headers": True,
+                        "method.response.header.Access-Control-Allow-Methods": True
+                    }
+                ),
+                apigateway.MethodResponse(
+                    status_code="500", 
+                    response_parameters={
+                        "method.response.header.Access-Control-Allow-Origin": True,
+                        "method.response.header.Access-Control-Allow-Headers": True,
+                        "method.response.header.Access-Control-Allow-Methods": True
+                    }
+                )
+            ]
+        )
+          # POST /auth/register - Register endpoint
         self.register_resource = self.auth_resource.add_resource("register")
-        self.register_resource.add_method("POST", apigateway.LambdaIntegration(register_handler),
-            method_responses=[apigateway.MethodResponse(status_code="201", response_parameters={"method.response.header.Access-Control-Allow-Origin": True})])
-        
-        # POST /auth/confirm - Confirm registration endpoint
+        self.register_resource.add_method(
+            "POST", 
+            apigateway.LambdaIntegration(
+                register_handler,
+                integration_responses=[
+                    apigateway.IntegrationResponse(
+                        status_code="201",
+                        response_parameters={
+                            "method.response.header.Access-Control-Allow-Origin": "integration.response.header.Access-Control-Allow-Origin",
+                            "method.response.header.Access-Control-Allow-Headers": "integration.response.header.Access-Control-Allow-Headers",
+                            "method.response.header.Access-Control-Allow-Methods": "integration.response.header.Access-Control-Allow-Methods"
+                        }
+                    ),
+                    apigateway.IntegrationResponse(
+                        status_code="400",
+                        selection_pattern="400",
+                        response_parameters={
+                            "method.response.header.Access-Control-Allow-Origin": "integration.response.header.Access-Control-Allow-Origin",
+                            "method.response.header.Access-Control-Allow-Headers": "integration.response.header.Access-Control-Allow-Headers",
+                            "method.response.header.Access-Control-Allow-Methods": "integration.response.header.Access-Control-Allow-Methods"
+                        }
+                    ),
+                    apigateway.IntegrationResponse(
+                        status_code="409",
+                        selection_pattern="409",
+                        response_parameters={
+                            "method.response.header.Access-Control-Allow-Origin": "integration.response.header.Access-Control-Allow-Origin",
+                            "method.response.header.Access-Control-Allow-Headers": "integration.response.header.Access-Control-Allow-Headers",
+                            "method.response.header.Access-Control-Allow-Methods": "integration.response.header.Access-Control-Allow-Methods"
+                        }
+                    ),
+                    apigateway.IntegrationResponse(
+                        status_code="500",
+                        selection_pattern="500",
+                        response_parameters={
+                            "method.response.header.Access-Control-Allow-Origin": "integration.response.header.Access-Control-Allow-Origin",
+                            "method.response.header.Access-Control-Allow-Headers": "integration.response.header.Access-Control-Allow-Headers",
+                            "method.response.header.Access-Control-Allow-Methods": "integration.response.header.Access-Control-Allow-Methods"
+                        }
+                    )
+                ]
+            ),
+            method_responses=[
+                apigateway.MethodResponse(
+                    status_code="201", 
+                    response_parameters={
+                        "method.response.header.Access-Control-Allow-Origin": True,
+                        "method.response.header.Access-Control-Allow-Headers": True,
+                        "method.response.header.Access-Control-Allow-Methods": True
+                    }
+                ),
+                apigateway.MethodResponse(
+                    status_code="400", 
+                    response_parameters={
+                        "method.response.header.Access-Control-Allow-Origin": True,
+                        "method.response.header.Access-Control-Allow-Headers": True,
+                        "method.response.header.Access-Control-Allow-Methods": True
+                    }
+                ),
+                apigateway.MethodResponse(
+                    status_code="409", 
+                    response_parameters={
+                        "method.response.header.Access-Control-Allow-Origin": True,
+                        "method.response.header.Access-Control-Allow-Headers": True,
+                        "method.response.header.Access-Control-Allow-Methods": True
+                    }
+                ),
+                apigateway.MethodResponse(
+                    status_code="500", 
+                    response_parameters={
+                        "method.response.header.Access-Control-Allow-Origin": True,
+                        "method.response.header.Access-Control-Allow-Headers": True,
+                        "method.response.header.Access-Control-Allow-Methods": True
+                    }
+                )
+            ]
+        )
+          # POST /auth/confirm - Confirm registration endpoint
         self.confirm_resource = self.auth_resource.add_resource("confirm")
-        self.confirm_resource.add_method("POST", apigateway.LambdaIntegration(confirm_handler),
-            method_responses=[apigateway.MethodResponse(status_code="200", response_parameters={"method.response.header.Access-Control-Allow-Origin": True})])
+        self.confirm_resource.add_method(
+            "POST", 
+            apigateway.LambdaIntegration(
+                confirm_handler,
+                integration_responses=[
+                    apigateway.IntegrationResponse(
+                        status_code="200",
+                        response_parameters={
+                            "method.response.header.Access-Control-Allow-Origin": "integration.response.header.Access-Control-Allow-Origin",
+                            "method.response.header.Access-Control-Allow-Headers": "integration.response.header.Access-Control-Allow-Headers",
+                            "method.response.header.Access-Control-Allow-Methods": "integration.response.header.Access-Control-Allow-Methods"
+                        }
+                    ),
+                    apigateway.IntegrationResponse(
+                        status_code="400",
+                        selection_pattern="400",
+                        response_parameters={
+                            "method.response.header.Access-Control-Allow-Origin": "integration.response.header.Access-Control-Allow-Origin",
+                            "method.response.header.Access-Control-Allow-Headers": "integration.response.header.Access-Control-Allow-Headers",
+                            "method.response.header.Access-Control-Allow-Methods": "integration.response.header.Access-Control-Allow-Methods"
+                        }
+                    ),
+                    apigateway.IntegrationResponse(
+                        status_code="404",
+                        selection_pattern="404",
+                        response_parameters={
+                            "method.response.header.Access-Control-Allow-Origin": "integration.response.header.Access-Control-Allow-Origin",
+                            "method.response.header.Access-Control-Allow-Headers": "integration.response.header.Access-Control-Allow-Headers",
+                            "method.response.header.Access-Control-Allow-Methods": "integration.response.header.Access-Control-Allow-Methods"
+                        }
+                    ),
+                    apigateway.IntegrationResponse(
+                        status_code="500",
+                        selection_pattern="500",
+                        response_parameters={
+                            "method.response.header.Access-Control-Allow-Origin": "integration.response.header.Access-Control-Allow-Origin",
+                            "method.response.header.Access-Control-Allow-Headers": "integration.response.header.Access-Control-Allow-Headers",
+                            "method.response.header.Access-Control-Allow-Methods": "integration.response.header.Access-Control-Allow-Methods"
+                        }
+                    )
+                ]
+            ),
+            method_responses=[
+                apigateway.MethodResponse(
+                    status_code="200", 
+                    response_parameters={
+                        "method.response.header.Access-Control-Allow-Origin": True,
+                        "method.response.header.Access-Control-Allow-Headers": True,
+                        "method.response.header.Access-Control-Allow-Methods": True
+                    }
+                ),
+                apigateway.MethodResponse(
+                    status_code="400", 
+                    response_parameters={
+                        "method.response.header.Access-Control-Allow-Origin": True,
+                        "method.response.header.Access-Control-Allow-Headers": True,
+                        "method.response.header.Access-Control-Allow-Methods": True
+                    }
+                ),
+                apigateway.MethodResponse(
+                    status_code="404", 
+                    response_parameters={
+                        "method.response.header.Access-Control-Allow-Origin": True,
+                        "method.response.header.Access-Control-Allow-Headers": True,
+                        "method.response.header.Access-Control-Allow-Methods": True
+                    }
+                ),
+                apigateway.MethodResponse(
+                    status_code="500", 
+                    response_parameters={
+                        "method.response.header.Access-Control-Allow-Origin": True,
+                        "method.response.header.Access-Control-Allow-Headers": True,
+                        "method.response.header.Access-Control-Allow-Methods": True
+                    }
+                )
+            ]
+        )
         
         # Songs endpoints
         self.songs_resource = self.api.root.add_resource("songs")
         
         self.songs_resource.add_method("GET", apigateway.LambdaIntegration(get_songs_handler),
             method_responses=[apigateway.MethodResponse(status_code="200", response_parameters={"method.response.header.Access-Control-Allow-Origin": True})])
-        
-        self.songs_resource.add_method("POST", apigateway.LambdaIntegration(create_song_handler),
+        self.songs_resource.add_method(
+            "POST", 
+            apigateway.LambdaIntegration(
+                create_song_handler,
+                integration_responses=[
+                    apigateway.IntegrationResponse(
+                        status_code="201",
+                        response_parameters={
+                            "method.response.header.Access-Control-Allow-Origin": "integration.response.header.Access-Control-Allow-Origin",
+                            "method.response.header.Access-Control-Allow-Headers": "integration.response.header.Access-Control-Allow-Headers",
+                            "method.response.header.Access-Control-Allow-Methods": "integration.response.header.Access-Control-Allow-Methods"
+                        }
+                    ),
+                    apigateway.IntegrationResponse(
+                        status_code="400",
+                        selection_pattern="400",
+                        response_parameters={
+                            "method.response.header.Access-Control-Allow-Origin": "integration.response.header.Access-Control-Allow-Origin",
+                            "method.response.header.Access-Control-Allow-Headers": "integration.response.header.Access-Control-Allow-Headers",
+                            "method.response.header.Access-Control-Allow-Methods": "integration.response.header.Access-Control-Allow-Methods"
+                        }
+                    ),
+                    apigateway.IntegrationResponse(
+                        status_code="403",
+                        selection_pattern="403",
+                        response_parameters={
+                            "method.response.header.Access-Control-Allow-Origin": "integration.response.header.Access-Control-Allow-Origin",
+                            "method.response.header.Access-Control-Allow-Headers": "integration.response.header.Access-Control-Allow-Headers",
+                            "method.response.header.Access-Control-Allow-Methods": "integration.response.header.Access-Control-Allow-Methods"
+                        }
+                    ),
+                    apigateway.IntegrationResponse(
+                        status_code="404",
+                        selection_pattern="404",
+                        response_parameters={
+                            "method.response.header.Access-Control-Allow-Origin": "integration.response.header.Access-Control-Allow-Origin",
+                            "method.response.header.Access-Control-Allow-Headers": "integration.response.header.Access-Control-Allow-Headers",
+                            "method.response.header.Access-Control-Allow-Methods": "integration.response.header.Access-Control-Allow-Methods"
+                        }
+                    ),
+                    apigateway.IntegrationResponse(
+                        status_code="500",
+                        selection_pattern="500",
+                        response_parameters={
+                            "method.response.header.Access-Control-Allow-Origin": "integration.response.header.Access-Control-Allow-Origin",
+                            "method.response.header.Access-Control-Allow-Headers": "integration.response.header.Access-Control-Allow-Headers",
+                            "method.response.header.Access-Control-Allow-Methods": "integration.response.header.Access-Control-Allow-Methods"
+                        }
+                    )
+                ]
+            ),
             authorization_type=apigateway.AuthorizationType.COGNITO,
             authorizer=self.cognito_authorizer,
-            method_responses=[apigateway.MethodResponse(status_code="201", response_parameters={"method.response.header.Access-Control-Allow-Origin": True})])
+            method_responses=[
+                apigateway.MethodResponse(
+                    status_code="201", 
+                    response_parameters={
+                        "method.response.header.Access-Control-Allow-Origin": True,
+                        "method.response.header.Access-Control-Allow-Headers": True,
+                        "method.response.header.Access-Control-Allow-Methods": True
+                    }
+                ),
+                apigateway.MethodResponse(
+                    status_code="400", 
+                    response_parameters={
+                        "method.response.header.Access-Control-Allow-Origin": True,
+                        "method.response.header.Access-Control-Allow-Headers": True,
+                        "method.response.header.Access-Control-Allow-Methods": True
+                    }
+                ),
+                apigateway.MethodResponse(
+                    status_code="403", 
+                    response_parameters={
+                        "method.response.header.Access-Control-Allow-Origin": True,
+                        "method.response.header.Access-Control-Allow-Headers": True,
+                        "method.response.header.Access-Control-Allow-Methods": True
+                    }
+                ),
+                apigateway.MethodResponse(
+                    status_code="404", 
+                    response_parameters={
+                        "method.response.header.Access-Control-Allow-Origin": True,
+                        "method.response.header.Access-Control-Allow-Headers": True,
+                        "method.response.header.Access-Control-Allow-Methods": True
+                    }
+                ),
+                apigateway.MethodResponse(
+                    status_code="500", 
+                    response_parameters={
+                        "method.response.header.Access-Control-Allow-Origin": True,
+                        "method.response.header.Access-Control-Allow-Headers": True,
+                        "method.response.header.Access-Control-Allow-Methods": True
+                    }
+                )
+            ]
+        )
         
         self.song_resource = self.songs_resource.add_resource("{songId}")
         
