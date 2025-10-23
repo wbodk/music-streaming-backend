@@ -17,7 +17,8 @@ storage_stack = StorageStack(app, "MusicStreamingStorageStack")
 lambda_stack = LambdaStack(
     app, 
     "MusicStreamingLambdaStack", 
-    db=db_stack.db, 
+    db=db_stack.db,
+    subscriptions_table=db_stack.subscriptions_table,
     music_bucket=storage_stack.music_bucket,
     user_pool=auth_stack.user_pool,
     user_pool_client=auth_stack.user_pool_client
@@ -43,6 +44,9 @@ api_stack = ApiStack(
                         delete_artist_handler=lambda_stack.delete_artist_handler,
                         get_albums_by_artist_handler=lambda_stack.get_albums_by_artist_handler,
                         get_songs_by_artist_handler=lambda_stack.get_songs_by_artist_handler,
+                        subscribe_handler=lambda_stack.subscribe_handler,
+                        unsubscribe_handler=lambda_stack.unsubscribe_handler,
+                        get_user_subscriptions_handler=lambda_stack.get_user_subscriptions_handler,
                         login_handler=lambda_stack.login_handler,
                         refresh_handler=lambda_stack.refresh_handler,
                         register_handler=lambda_stack.register_handler,

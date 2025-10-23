@@ -30,6 +30,9 @@ class ApiStack(Stack):
             delete_artist_handler: lambda_.Function,
             get_albums_by_artist_handler: lambda_.Function,
             get_songs_by_artist_handler: lambda_.Function,
+            subscribe_handler: lambda_.Function,
+            unsubscribe_handler: lambda_.Function,
+            get_user_subscriptions_handler: lambda_.Function,
             login_handler: lambda_.Function,
             refresh_handler: lambda_.Function,
             register_handler: lambda_.Function,
@@ -182,5 +185,30 @@ class ApiStack(Stack):
         self.artist_songs_resource = self.artist_resource.add_resource("songs")
         
         self.artist_songs_resource.add_method("GET", apigateway.LambdaIntegration(get_songs_by_artist_handler),
+            method_responses=[apigateway.MethodResponse(status_code="200", response_parameters={"method.response.header.Access-Control-Allow-Origin": True})])
+        
+        # Users Subscriptions endpoints
+        self.users_resource = self.api.root.add_resource("users")
+        self.user_resource = self.users_resource.add_resource("{userId}")
+        self.subscriptions_resource = self.user_resource.add_resource("subscriptions")
+        
+        # GET /users/{userId}/subscriptions - Get user's subscriptions
+        self.subscriptions_resource.add_method("GET", apigateway.LambdaIntegration(get_user_subscriptions_handler),
+            authorization_type=apigateway.AuthorizationType.COGNITO,
+            authorizer=self.cognito_authorizer,
+            method_responses=[apigateway.MethodResponse(status_code="200", response_parameters={"method.response.header.Access-Control-Allow-Origin": True})])
+        
+        # POST /users/{userId}/subscriptions/{artistId} - Subscribe to artist
+        self.artist_subscription_resource = self.subscriptions_resource.add_resource("{artistId}")
+        
+        self.artist_subscription_resource.add_method("POST", apigateway.LambdaIntegration(subscribe_handler),
+            authorization_type=apigateway.AuthorizationType.COGNITO,
+            authorizer=self.cognito_authorizer,
+            method_responses=[apigateway.MethodResponse(status_code="201", response_parameters={"method.response.header.Access-Control-Allow-Origin": True})])
+        
+        # DELETE /users/{userId}/subscriptions/{artistId} - Unsubscribe from artist
+        self.artist_subscription_resource.add_method("DELETE", apigateway.LambdaIntegration(unsubscribe_handler),
+            authorization_type=apigateway.AuthorizationType.COGNITO,
+            authorizer=self.cognito_authorizer,
             method_responses=[apigateway.MethodResponse(status_code="200", response_parameters={"method.response.header.Access-Control-Allow-Origin": True})])
 

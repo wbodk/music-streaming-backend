@@ -9,7 +9,7 @@ from constructs import Construct
 
 class LambdaStack(Stack):
 
-    def __init__(self, scope: Construct, construct_id: str, db: dynamodb.TableV2, music_bucket: s3.Bucket, user_pool: cognito.UserPool, user_pool_client: cognito.UserPoolClient, **kwargs) -> None:
+    def __init__(self, scope: Construct, construct_id: str, db: dynamodb.TableV2, subscriptions_table: dynamodb.TableV2, music_bucket: s3.Bucket, user_pool: cognito.UserPool, user_pool_client: cognito.UserPoolClient, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
         
         # Create Song Handler
@@ -335,6 +335,50 @@ class LambdaStack(Stack):
         )
         
         db.grant_read_data(self.get_songs_by_artist_handler)
+        
+        # Subscribe Handler - Subscribe user to artist
+        self.subscribe_handler = lambda_.Function(
+            self,
+            "SubscribeHandler",
+            runtime=lambda_.Runtime.PYTHON_3_11,
+            handler="subscribe.handler",
+            code=lambda_.Code.from_asset("lambda/subscriptions"),
+            environment={
+                "SUBSCRIPTIONS_TABLE_NAME": subscriptions_table.table_name,
+                "TABLE_NAME": db.table_name
+            }
+        )
+        
+        subscriptions_table.grant_write_data(self.subscribe_handler)
+        db.grant_read_data(self.subscribe_handler)
+        
+        # Unsubscribe Handler - Unsubscribe user from artist
+        self.unsubscribe_handler = lambda_.Function(
+            self,
+            "UnsubscribeHandler",
+            runtime=lambda_.Runtime.PYTHON_3_11,
+            handler="unsubscribe.handler",
+            code=lambda_.Code.from_asset("lambda/subscriptions"),
+            environment={
+                "SUBSCRIPTIONS_TABLE_NAME": subscriptions_table.table_name
+            }
+        )
+        
+        subscriptions_table.grant_write_data(self.unsubscribe_handler)
+        
+        # Get User Subscriptions Handler - Get all subscriptions for a user
+        self.get_user_subscriptions_handler = lambda_.Function(
+            self,
+            "GetUserSubscriptionsHandler",
+            runtime=lambda_.Runtime.PYTHON_3_11,
+            handler="get_subscriptions.handler",
+            code=lambda_.Code.from_asset("lambda/subscriptions"),
+            environment={
+                "SUBSCRIPTIONS_TABLE_NAME": subscriptions_table.table_name
+            }
+        )
+        
+        subscriptions_table.grant_read_data(self.get_user_subscriptions_handler)
         
         # Grant Cognito permissions to auth handlers
         user_pool.grant(self.login_handler, "cognito-idp:AdminInitiateAuth")

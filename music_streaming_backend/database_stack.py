@@ -32,3 +32,18 @@ class DatabaseStack(Stack):
                 )
             ]
         )
+
+        # Subscriptions table for user subscriptions to artists
+        self.subscriptions_table = dynamodb.TableV2(
+            self,
+            id="subscriptions-db-2025",
+            partition_key=dynamodb.Attribute(name="user_id", type=dynamodb.AttributeType.STRING),
+            sort_key=dynamodb.Attribute(name="artist_id", type=dynamodb.AttributeType.STRING),
+            global_secondary_indexes=[
+                dynamodb.GlobalSecondaryIndexPropsV2(
+                    index_name="user-id-index",
+                    partition_key=dynamodb.Attribute(name="user_id", type=dynamodb.AttributeType.STRING),
+                    sort_key=dynamodb.Attribute(name="subscription_date", type=dynamodb.AttributeType.STRING)
+                )
+            ]
+        )
