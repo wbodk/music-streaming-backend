@@ -23,6 +23,13 @@ class ApiStack(Stack):
             get_album_handler: lambda_.Function,
             update_album_handler: lambda_.Function,
             delete_album_handler: lambda_.Function,
+            create_artist_handler: lambda_.Function,
+            get_artists_handler: lambda_.Function,
+            get_artist_handler: lambda_.Function,
+            update_artist_handler: lambda_.Function,
+            delete_artist_handler: lambda_.Function,
+            get_albums_by_artist_handler: lambda_.Function,
+            get_songs_by_artist_handler: lambda_.Function,
             login_handler: lambda_.Function,
             refresh_handler: lambda_.Function,
             register_handler: lambda_.Function,
@@ -128,4 +135,43 @@ class ApiStack(Stack):
         self.album_songs_resource = self.album_resource.add_resource("songs")
         
         self.album_songs_resource.add_method("GET", apigateway.LambdaIntegration(get_songs_by_album_handler),
-            method_responses=[apigateway.MethodResponse(status_code="200")]) 
+            method_responses=[apigateway.MethodResponse(status_code="200")])
+        
+        # Artists endpoints
+        self.artists_resource = self.api.root.add_resource("artists")
+        
+        self.artists_resource.add_method("GET", apigateway.LambdaIntegration(get_artists_handler),
+            method_responses=[apigateway.MethodResponse(status_code="200")])
+        
+        self.artists_resource.add_method("POST", apigateway.LambdaIntegration(create_artist_handler),
+            authorization_type=apigateway.AuthorizationType.COGNITO,
+            authorizer=self.cognito_authorizer,
+            method_responses=[apigateway.MethodResponse(status_code="201")])
+        
+        self.artist_resource = self.artists_resource.add_resource("{artistId}")
+        
+        self.artist_resource.add_method("GET", apigateway.LambdaIntegration(get_artist_handler),
+            method_responses=[apigateway.MethodResponse(status_code="200")])
+        
+        self.artist_resource.add_method("PUT", apigateway.LambdaIntegration(update_artist_handler),
+            authorization_type=apigateway.AuthorizationType.COGNITO,
+            authorizer=self.cognito_authorizer,
+            method_responses=[apigateway.MethodResponse(status_code="200")])
+        
+        self.artist_resource.add_method("DELETE", apigateway.LambdaIntegration(delete_artist_handler),
+            authorization_type=apigateway.AuthorizationType.COGNITO,
+            authorizer=self.cognito_authorizer,
+            method_responses=[apigateway.MethodResponse(status_code="204")])
+        
+        # GET /artists/{artistId}/albums - Get albums by artist
+        self.artist_albums_resource = self.artist_resource.add_resource("albums")
+        
+        self.artist_albums_resource.add_method("GET", apigateway.LambdaIntegration(get_albums_by_artist_handler),
+            method_responses=[apigateway.MethodResponse(status_code="200")])
+        
+        # GET /artists/{artistId}/songs - Get songs by artist
+        self.artist_songs_resource = self.artist_resource.add_resource("songs")
+        
+        self.artist_songs_resource.add_method("GET", apigateway.LambdaIntegration(get_songs_by_artist_handler),
+            method_responses=[apigateway.MethodResponse(status_code="200")])
+

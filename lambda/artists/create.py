@@ -10,14 +10,25 @@ table = dynamodb.Table(os.environ['TABLE_NAME'])
 
 def handler(event, context):
     """
-    Create a new album.
+    Create a new artist.
     Requires admin authorization (checked by API Gateway authorizer).
     """
     try:
         # Verify user is admin
         authorizer = event.get('requestContext', {}).get('authorizer', {})
-        groups = authorizer.get('claims', {}).get('cognito:groups', [])
         
+        # Try to get groups from different possible locations
+        groups = []
+        
+        # First try from claims (standard Cognito)
+        if 'claims' in authorizer:
+            groups = authorizer.get('claims', {}).get('cognito:groups', [])
+        
+        # If not found, check if groups are at top level
+        if not groups and 'cognito:groups' in authorizer:
+            groups = authorizer.get('cognito:groups', [])
+        
+        # Handle case where groups is a string instead of list
         if isinstance(groups, str):
             groups = [groups]
         
@@ -29,7 +40,7 @@ def handler(event, context):
                     'Access-Control-Allow-Origin': '*'
                 },
                 'body': json.dumps({
-                    'message': 'Only admins can create albums'
+                    'message': 'Only admins can create artists'
                 })
             }
         
@@ -49,7 +60,7 @@ def handler(event, context):
             }
         
         # Validate required fields
-        required_fields = ['title', 'artist_id']
+        required_fields = ['name']
         for field in required_fields:
             if field not in body or not body[field]:
                 return {
@@ -63,66 +74,28 @@ def handler(event, context):
                     })
                 }
         
-        # Verify artist exists
-        artist_id = body['artist_id']
-        artist_response = table.get_item(
-            Key={
-                'pk': f'ARTIST#{artist_id}',
-                'sk': 'METADATA'
-            }
-        )
-        
-        if 'Item' not in artist_response:
-            return {
-                'statusCode': 404,
-                'headers': {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
-                },
-                'body': json.dumps({
-                    'message': 'Artist not found'
-                })
-            }
-        
-        artist = artist_response['Item']
-        
-        # Generate album ID
-        album_id = str(uuid.uuid4())
+        # Generate artist ID
+        artist_id = str(uuid.uuid4())
         timestamp = datetime.utcnow().isoformat()
         
-        # Prepare album item
-        album_item = {
-            'pk': f'ALBUM#{album_id}',
+        # Prepare artist item
+        artist_item = {
+            'pk': f'ARTIST#{artist_id}',
             'sk': 'METADATA',
-            'album_id': album_id,
-            'title': body['title'],
             'artist_id': artist_id,
-            'artist_name': artist['name'],
-            'release_date': body.get('release_date', ''),
+            'name': body['name'],
+            'biography': body.get('biography', ''),
+            'profile_image_url': body.get('profile_image_url', ''),
             'genre': body.get('genre', ''),
-            'description': body.get('description', ''),
-            'cover_image_url': body.get('cover_image_url', ''),
+            'country': body.get('country', ''),
+            'total_albums': 0,
             'total_songs': 0,
             'created_at': timestamp,
             'updated_at': timestamp
         }
         
-        # Save album to DynamoDB
-        table.put_item(Item=album_item)
-        
-        # Increment artist's total_albums counter
-        table.update_item(
-            Key={
-                'pk': f'ARTIST#{artist_id}',
-                'sk': 'METADATA'
-            },
-            UpdateExpression='SET total_albums = if_not_exists(total_albums, :zero) + :inc, updated_at = :updated_at',
-            ExpressionAttributeValues={
-                ':zero': 0,
-                ':inc': 1,
-                ':updated_at': timestamp
-            }
-        )
+        # Save to DynamoDB
+        table.put_item(Item=artist_item)
         
         return {
             'statusCode': 201,
@@ -131,8 +104,8 @@ def handler(event, context):
                 'Access-Control-Allow-Origin': '*'
             },
             'body': json.dumps({
-                'message': 'Album created successfully',
-                'album': json.loads(json.dumps(album_item, default=str))
+                'message': 'Artist created successfully',
+                'artist': json.loads(json.dumps(artist_item, default=str))
             })
         }
     
@@ -145,7 +118,7 @@ def handler(event, context):
                 'Access-Control-Allow-Origin': '*'
             },
             'body': json.dumps({
-                'message': 'Error creating album',
+                'message': 'Error creating artist',
                 'error': str(e)
             })
         }
