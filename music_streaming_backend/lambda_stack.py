@@ -17,8 +17,8 @@ class LambdaStack(Stack):
             self,
             "CreateSongHandler",
             runtime=lambda_.Runtime.PYTHON_3_11,
-            handler="index.handler",
-            code=lambda_.Code.from_asset("lambda/create_song"),
+            handler="create.handler",
+            code=lambda_.Code.from_asset("lambda/songs"),
             environment={
                 "TABLE_NAME": db.table_name,
                 "BUCKET_NAME": music_bucket.bucket_name
@@ -81,6 +81,64 @@ class LambdaStack(Stack):
                 "CLIENT_SECRET": user_pool_client.user_pool_client_secret.unsafe_unwrap()
             }
         )
+        
+        # Get Songs Handler
+        self.get_songs_handler = lambda_.Function(
+            self,
+            "GetSongsHandler",
+            runtime=lambda_.Runtime.PYTHON_3_11,
+            handler="get_songs.handler",
+            code=lambda_.Code.from_asset("lambda/songs"),
+            environment={
+                "TABLE_NAME": db.table_name
+            }
+        )
+        
+        db.grant_read_data(self.get_songs_handler)
+        
+        # Get Song Handler
+        self.get_song_handler = lambda_.Function(
+            self,
+            "GetSongHandler",
+            runtime=lambda_.Runtime.PYTHON_3_11,
+            handler="get_song.handler",
+            code=lambda_.Code.from_asset("lambda/songs"),
+            environment={
+                "TABLE_NAME": db.table_name
+            }
+        )
+        
+        db.grant_read_data(self.get_song_handler)
+        
+        # Update Song Handler
+        self.update_song_handler = lambda_.Function(
+            self,
+            "UpdateSongHandler",
+            runtime=lambda_.Runtime.PYTHON_3_11,
+            handler="update.handler",
+            code=lambda_.Code.from_asset("lambda/songs"),
+            environment={
+                "TABLE_NAME": db.table_name
+            }
+        )
+        
+        db.grant_write_data(self.update_song_handler)
+        
+        # Delete Song Handler
+        self.delete_song_handler = lambda_.Function(
+            self,
+            "DeleteSongHandler",
+            runtime=lambda_.Runtime.PYTHON_3_11,
+            handler="delete.handler",
+            code=lambda_.Code.from_asset("lambda/songs"),
+            environment={
+                "TABLE_NAME": db.table_name,
+                "BUCKET_NAME": music_bucket.bucket_name
+            }
+        )
+        
+        db.grant_write_data(self.delete_song_handler)
+        music_bucket.grant_delete(self.delete_song_handler)
         
         # Grant Cognito permissions to auth handlers
         user_pool.grant(self.login_handler, "cognito-idp:AdminInitiateAuth")
