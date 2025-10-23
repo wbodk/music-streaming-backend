@@ -9,7 +9,7 @@ table = dynamodb.Table(os.environ['TABLE_NAME'])
 
 def handler(event, context):
     """
-    Get all songs from the database.
+    Get all songs from the database using GSI.
     Returns a paginated list of songs.
     """
     try:
@@ -33,29 +33,21 @@ def handler(event, context):
                 except json.JSONDecodeError:
                     pass
         
-        # Query all songs (those with pk starting with 'SONG#')
+        # Query using GSI to get all songs efficiently
         query_params = {
-            'IndexName': 'pk_gsi',  # Using GSI for efficient querying
-            'KeyConditionExpression': 'pk = :pk',
+            'IndexName': 'entity-type-index',
+            'KeyConditionExpression': 'entity_type = :entity_type',
             'ExpressionAttributeValues': {
-                ':pk': 'SONG'
+                ':entity_type': 'SONG'
             },
-            'Limit': limit
-        }
-        
-        # Fallback to scan if GSI not available
-        scan_params = {
-            'FilterExpression': 'begins_with(pk, :pk_prefix)',
-            'ExpressionAttributeValues': {
-                ':pk_prefix': 'SONG'
-            },
-            'Limit': limit
+            'Limit': limit,
+            'ScanIndexForward': False  # Sort by created_at descending (newest first)
         }
         
         if exclusive_start_key:
-            scan_params['ExclusiveStartKey'] = exclusive_start_key
+            query_params['ExclusiveStartKey'] = exclusive_start_key
         
-        response = table.scan(**scan_params)
+        response = table.query(**query_params)
         
         # Convert Decimal to float for JSON serialization
         items = []
@@ -76,7 +68,6 @@ def handler(event, context):
                 'last_key': response.get('LastEvaluatedKey')  # For pagination
             })
         }
-    
     except Exception as e:
         print(f"Error: {str(e)}")
         return {

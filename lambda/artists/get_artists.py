@@ -8,7 +8,7 @@ table = dynamodb.Table(os.environ['TABLE_NAME'])
 
 def handler(event, context):
     """
-    Get all artists from the database.
+    Get all artists from the database using GSI.
     Returns a paginated list of artists.
     """
     try:
@@ -32,19 +32,41 @@ def handler(event, context):
                 except json.JSONDecodeError:
                     pass
         
-        # Scan for all artists
-        scan_params = {
-            'FilterExpression': 'begins_with(pk, :pk_prefix)',
+        # Query using GSI to get all artists efficiently
+        query_params = {
+            'IndexName': 'entity-type-index',
+            'KeyConditionExpression': 'entity_type = :entity_type',
             'ExpressionAttributeValues': {
-                ':pk_prefix': 'ARTIST'
+                ':entity_type': 'ARTIST'
             },
-            'Limit': limit
+            'Limit': limit,
+            'ScanIndexForward': False  # Sort by created_at descending (newest first)
         }
         
         if exclusive_start_key:
-            scan_params['ExclusiveStartKey'] = exclusive_start_key
+            query_params['ExclusiveStartKey'] = exclusive_start_key
         
-        response = table.scan(**scan_params)
+        response = table.query(**query_params)
+        
+        # Convert Decimal to float for JSON serialization
+        items = []
+        for item in response.get('Items', []):
+            item_dict = json.loads(json.dumps(item, default=str))
+            items.append(item_dict)
+        
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            },
+            'body': json.dumps({
+                'message': 'Artists retrieved successfully',
+                'count': len(items),
+                'artists': items,
+                'last_key': response.get('LastEvaluatedKey')  # For pagination
+            })
+        }
         
         # Convert Decimal to float for JSON serialization
         items = []
