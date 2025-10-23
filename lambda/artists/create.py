@@ -82,6 +82,7 @@ def handler(event, context):
         artist_item = {
             'pk': f'ARTIST#{artist_id}',
             'sk': 'METADATA',
+            'entity_type': 'ARTIST',
             'artist_id': artist_id,
             'name': body['name'],
             'biography': body.get('biography', ''),

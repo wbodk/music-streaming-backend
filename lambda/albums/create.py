@@ -94,6 +94,7 @@ def handler(event, context):
         album_item = {
             'pk': f'ALBUM#{album_id}',
             'sk': 'METADATA',
+            'entity_type': 'ALBUM',
             'album_id': album_id,
             'title': body['title'],
             'artist_id': artist_id,

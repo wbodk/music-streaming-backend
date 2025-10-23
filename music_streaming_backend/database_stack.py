@@ -29,6 +29,11 @@ class DatabaseStack(Stack):
                     index_name="artist-id-index",
                     partition_key=dynamodb.Attribute(name="artist_id", type=dynamodb.AttributeType.STRING),
                     sort_key=dynamodb.Attribute(name="created_at", type=dynamodb.AttributeType.STRING)
+                ),
+                dynamodb.GlobalSecondaryIndexPropsV2(
+                    index_name="entity-type-index",
+                    partition_key=dynamodb.Attribute(name="entity_type", type=dynamodb.AttributeType.STRING),
+                    sort_key=dynamodb.Attribute(name="created_at", type=dynamodb.AttributeType.STRING)
                 )
             ]
         )

@@ -112,6 +112,7 @@ def handler(event, context):
         item = {
             'pk': f'SONG#{song_id}',
             'sk': 'METADATA',
+            'entity_type': 'SONG',
             'song_id': song_id,
             'title': body['title'],
             'artist_id': artist_id,
