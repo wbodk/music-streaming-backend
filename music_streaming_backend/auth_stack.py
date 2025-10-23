@@ -25,8 +25,7 @@ class AuthStack(Stack):
                     email=cognito.StandardAttribute(required=True, mutable=True),
                     given_name=cognito.StandardAttribute(required=True, mutable=True),
                     family_name=cognito.StandardAttribute(required=True, mutable=True),
-                    birthdate=cognito.StandardAttribute(required=True, mutable=True),
-                    preferred_username=cognito.StandardAttribute(required=True, mutable=True)
+                    birthdate=cognito.StandardAttribute(required=True, mutable=True)
                 ),
                 sign_in_aliases=cognito.SignInAliases(
                     username=True,
@@ -66,15 +65,13 @@ class AuthStack(Stack):
                 email=True,
                 given_name=True,
                 family_name=True,
-                birthdate=True,
-                preferred_username=True
+                birthdate=True
             ),
             write_attributes=cognito.ClientAttributes().with_standard_attributes(
                 email=True,
                 given_name=True,
                 family_name=True,
-                birthdate=True,
-                preferred_username=True
+                birthdate=True
             ),
             enable_token_revocation=True,
             access_token_validity=Duration.hours(1),

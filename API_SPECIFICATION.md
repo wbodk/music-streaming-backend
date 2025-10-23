@@ -24,8 +24,7 @@ Register a new user account.
   "email": "string (required)",
   "given_name": "string (required)",
   "family_name": "string (required)",
-  "birthdate": "string (required, YYYY-MM-DD format)",
-  "preferred_username": "string (required)"
+  "birthdate": "string (required, YYYY-MM-DD format)"
 }
 ```
 
