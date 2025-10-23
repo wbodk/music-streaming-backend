@@ -62,22 +62,42 @@ class ApiStack(Stack):
         # POST /auth/login - Login endpoint
         self.login_resource = self.auth_resource.add_resource("login")
         self.login_resource.add_method("POST", apigateway.LambdaIntegration(login_handler),
-            method_responses=[apigateway.MethodResponse(status_code="200")])
+            method_responses=[apigateway.MethodResponse(status_code="200")],
+            cors=apigateway.CorsOptions(
+                allow_methods=apigateway.Cors.ALL_METHODS,
+                allow_origins=apigateway.Cors.ALL_ORIGINS,
+                allow_headers=apigateway.Cors.DEFAULT_HEADERS
+            ))
         
         # POST /auth/refresh - Refresh token endpoint
         self.refresh_resource = self.auth_resource.add_resource("refresh")
         self.refresh_resource.add_method("POST", apigateway.LambdaIntegration(refresh_handler),
-            method_responses=[apigateway.MethodResponse(status_code="200")])
+            method_responses=[apigateway.MethodResponse(status_code="200")],
+            cors=apigateway.CorsOptions(
+                allow_methods=apigateway.Cors.ALL_METHODS,
+                allow_origins=apigateway.Cors.ALL_ORIGINS,
+                allow_headers=apigateway.Cors.DEFAULT_HEADERS
+            ))
         
         # POST /auth/register - Register endpoint
         self.register_resource = self.auth_resource.add_resource("register")
         self.register_resource.add_method("POST", apigateway.LambdaIntegration(register_handler),
-            method_responses=[apigateway.MethodResponse(status_code="201")])
+            method_responses=[apigateway.MethodResponse(status_code="201")],
+            cors=apigateway.CorsOptions(
+                allow_methods=apigateway.Cors.ALL_METHODS,
+                allow_origins=apigateway.Cors.ALL_ORIGINS,
+                allow_headers=apigateway.Cors.DEFAULT_HEADERS
+            ))
         
         # POST /auth/confirm - Confirm registration endpoint
         self.confirm_resource = self.auth_resource.add_resource("confirm")
         self.confirm_resource.add_method("POST", apigateway.LambdaIntegration(confirm_handler),
-            method_responses=[apigateway.MethodResponse(status_code="200")])
+            method_responses=[apigateway.MethodResponse(status_code="200")],
+            cors=apigateway.CorsOptions(
+                allow_methods=apigateway.Cors.ALL_METHODS,
+                allow_origins=apigateway.Cors.ALL_ORIGINS,
+                allow_headers=apigateway.Cors.DEFAULT_HEADERS
+            ))
         
         # Songs endpoints
         self.songs_resource = self.api.root.add_resource("songs")
