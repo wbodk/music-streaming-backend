@@ -53,8 +53,10 @@ def handler(event, context):
         query_params = {
             'IndexName': 'album-index',
             'KeyConditionExpression': 'album_id = :album_id',
+            'FilterExpression': 'entity_type = :entity_type',
             'ExpressionAttributeValues': {
-                ':album_id': album_id
+                ':album_id': album_id,
+                ':entity_type': 'SONG'
             },
             'Limit': limit
         }
