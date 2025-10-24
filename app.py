@@ -47,6 +47,7 @@ api_stack = ApiStack(
                         subscribe_handler=lambda_stack.subscribe_handler,
                         unsubscribe_handler=lambda_stack.unsubscribe_handler,
                         get_user_subscriptions_handler=lambda_stack.get_user_subscriptions_handler,
+                        toggle_notifications_handler=lambda_stack.toggle_notifications_handler,
                         login_handler=lambda_stack.login_handler,
                         refresh_handler=lambda_stack.refresh_handler,
                         register_handler=lambda_stack.register_handler,

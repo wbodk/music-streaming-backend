@@ -1,30 +1,27 @@
 import json
 import boto3
 import os
-from datetime import datetime
 
 # Initialize DynamoDB
 dynamodb = boto3.resource('dynamodb')
 subscriptions_table = dynamodb.Table(os.environ['SUBSCRIPTIONS_TABLE_NAME'])
-db_table = dynamodb.Table(os.environ['TABLE_NAME'])
 
 def handler(event, context):
     """
-    Subscribe a user to an artist.
+    Toggle notification preferences for a user's subscription to an artist.
     Path parameters: artistId
-    User ID and email are automatically extracted from JWT claims.
-    No request body needed.
+    User ID is automatically extracted from JWT claims.
+    Request body: { "notification_enabled": true/false }
     """
     try:
-        # Extract user ID and email from JWT claims (verified by Cognito)
+        # Extract user ID from JWT claims
         claims = event.get('requestContext', {}).get('authorizer', {}).get('claims', {})
         user_id = claims.get('sub')  # 'sub' is the user ID in Cognito tokens
-        user_email = claims.get('email')
         
         # Get artist ID from path parameters
         artist_id = event.get('pathParameters', {}).get('artistId')
         
-        if not user_id or not artist_id or not user_email:
+        if not user_id or not artist_id:
             return {
                 'statusCode': 400,
                 'headers': {
@@ -36,29 +33,39 @@ def handler(event, context):
                 })
             }
         
-        # Verify artist exists
-        artist_response = db_table.get_item(
-            Key={
-                'pk': f'ARTIST#{artist_id}',
-                'sk': 'METADATA'
-            }
-        )
-        
-        if 'Item' not in artist_response:
+        # Get notification preference from request body
+        try:
+            if isinstance(event.get('body'), str):
+                body = json.loads(event['body'])
+            else:
+                body = event.get('body', {})
+        except:
             return {
-                'statusCode': 404,
+                'statusCode': 400,
                 'headers': {
                     'Content-Type': 'application/json',
                     'Access-Control-Allow-Origin': '*'
                 },
                 'body': json.dumps({
-                    'error': 'Artist not found'
+                    'error': 'Invalid request body'
                 })
             }
         
-        artist = artist_response['Item']
+        notification_enabled = body.get('notification_enabled')
         
-        # Check if already subscribed
+        if notification_enabled is None:
+            return {
+                'statusCode': 400,
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                'body': json.dumps({
+                    'error': 'Missing notification_enabled field'
+                })
+            }
+        
+        # Check if subscription exists
         subscription_response = subscriptions_table.get_item(
             Key={
                 'user_id': user_id,
@@ -66,43 +73,42 @@ def handler(event, context):
             }
         )
         
-        if 'Item' in subscription_response:
+        if 'Item' not in subscription_response:
             return {
-                'statusCode': 409,
+                'statusCode': 404,
                 'headers': {
                     'Content-Type': 'application/json',
                     'Access-Control-Allow-Origin': '*'
                 },
                 'body': json.dumps({
-                    'error': 'User is already subscribed to this artist'
+                    'error': 'Subscription not found'
                 })
             }
         
-        # Create subscription
-        subscription_date = datetime.utcnow().isoformat()
-        subscriptions_table.put_item(
-            Item={
+        # Update notification preference
+        subscriptions_table.update_item(
+            Key={
                 'user_id': user_id,
-                'artist_id': artist_id,
-                'artist_name': artist.get('name', ''),
-                'user_email': user_email,
-                'subscription_date': subscription_date,
-                'notification_enabled': True
+                'artist_id': artist_id
+            },
+            UpdateExpression='SET notification_enabled = :notification_enabled',
+            ExpressionAttributeValues={
+                ':notification_enabled': bool(notification_enabled)
             }
         )
         
+        status = "enabled" if notification_enabled else "disabled"
         return {
-            'statusCode': 201,
+            'statusCode': 200,
             'headers': {
                 'Content-Type': 'application/json',
                 'Access-Control-Allow-Origin': '*'
             },
             'body': json.dumps({
-                'message': 'Successfully subscribed to artist',
+                'message': f'Notifications {status}',
                 'user_id': user_id,
                 'artist_id': artist_id,
-                'artist_name': artist.get('name', ''),
-                'subscription_date': subscription_date
+                'notification_enabled': bool(notification_enabled)
             })
         }
     
@@ -115,7 +121,7 @@ def handler(event, context):
                 'Access-Control-Allow-Origin': '*'
             },
             'body': json.dumps({
-                'error': 'Error creating subscription',
+                'error': 'Error updating notification preferences',
                 'message': str(e)
             })
         }

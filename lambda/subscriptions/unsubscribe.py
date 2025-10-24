@@ -9,11 +9,15 @@ subscriptions_table = dynamodb.Table(os.environ['SUBSCRIPTIONS_TABLE_NAME'])
 def handler(event, context):
     """
     Unsubscribe a user from an artist.
-    Path parameters: userId, artistId
+    Path parameters: artistId
+    User ID is automatically extracted from JWT claims.
     """
     try:
-        # Get user ID and artist ID from path parameters
-        user_id = event.get('pathParameters', {}).get('userId')
+        # Extract user ID from JWT claims
+        claims = event.get('requestContext', {}).get('authorizer', {}).get('claims', {})
+        user_id = claims.get('sub')  # 'sub' is the user ID in Cognito tokens
+        
+        # Get artist ID from path parameters
         artist_id = event.get('pathParameters', {}).get('artistId')
         
         if not user_id or not artist_id:
@@ -24,7 +28,7 @@ def handler(event, context):
                     'Access-Control-Allow-Origin': '*'
                 },
                 'body': json.dumps({
-                    'error': 'Missing userId or artistId'
+                    'error': 'Missing artistId or authentication claims'
                 })
             }
         

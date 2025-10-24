@@ -1,9 +1,11 @@
 from aws_cdk import (
     Stack,
+    Duration,
     aws_lambda as lambda_,
     aws_dynamodb as dynamodb,
     aws_s3 as s3,
-    aws_cognito as cognito
+    aws_cognito as cognito,
+    aws_iam as iam
 )
 from constructs import Construct
 
@@ -349,7 +351,7 @@ class LambdaStack(Stack):
             }
         )
         
-        subscriptions_table.grant_write_data(self.subscribe_handler)
+        subscriptions_table.grant_read_write_data(self.subscribe_handler)
         db.grant_read_data(self.subscribe_handler)
         
         # Unsubscribe Handler - Unsubscribe user from artist
@@ -364,7 +366,7 @@ class LambdaStack(Stack):
             }
         )
         
-        subscriptions_table.grant_write_data(self.unsubscribe_handler)
+        subscriptions_table.grant_read_write_data(self.unsubscribe_handler)
         
         # Get User Subscriptions Handler - Get all subscriptions for a user
         self.get_user_subscriptions_handler = lambda_.Function(
@@ -379,6 +381,60 @@ class LambdaStack(Stack):
         )
         
         subscriptions_table.grant_read_data(self.get_user_subscriptions_handler)
+        
+        # Toggle Notifications Handler - Toggle notifications for a subscription
+        self.toggle_notifications_handler = lambda_.Function(
+            self,
+            "ToggleNotificationsHandler",
+            runtime=lambda_.Runtime.PYTHON_3_11,
+            handler="toggle_notifications.handler",
+            code=lambda_.Code.from_asset("lambda/subscriptions"),
+            environment={
+                "SUBSCRIPTIONS_TABLE_NAME": subscriptions_table.table_name
+            }
+        )
+        
+        subscriptions_table.grant_read_write_data(self.toggle_notifications_handler)
+        
+        # Send Notifications Handler - Send email notifications to subscribers
+        self.send_notifications_handler = lambda_.Function(
+            self,
+            "SendNotificationsHandler",
+            runtime=lambda_.Runtime.PYTHON_3_11,
+            handler="send_notifications.handler",
+            code=lambda_.Code.from_asset("lambda/subscriptions"),
+            environment={
+                "SUBSCRIPTIONS_TABLE_NAME": subscriptions_table.table_name,
+                "TABLE_NAME": db.table_name,
+                "SES_SENDER_EMAIL": "romanminakov@proton.me",  # Change to your verified email
+                "APP_URL": "d1wnmsdwgb6x45.cloudfront.net"
+            },
+            timeout=Duration.seconds(60),
+            memory_size=256
+        )
+        
+        subscriptions_table.grant_read_data(self.send_notifications_handler)
+        db.grant_read_data(self.send_notifications_handler)
+        
+        # Grant SES permissions to send emails
+        self.send_notifications_handler.add_to_role_policy(
+            iam.PolicyStatement(
+                effect=iam.Effect.ALLOW,
+                actions=[
+                    "ses:SendEmail",
+                    "ses:SendRawEmail"
+                ],
+                resources=["*"]
+            )
+        )
+        
+        # Update song and album create handlers to invoke send notifications
+        self.create_song_handler.add_environment("SEND_NOTIFICATIONS_FUNCTION", self.send_notifications_handler.function_name)
+        self.create_album_handler.add_environment("SEND_NOTIFICATIONS_FUNCTION", self.send_notifications_handler.function_name)
+        
+        # Grant permissions for create handlers to invoke send notifications
+        self.send_notifications_handler.grant_invoke(self.create_song_handler)
+        self.send_notifications_handler.grant_invoke(self.create_album_handler)
         
         # Grant Cognito permissions to auth handlers
         user_pool.grant(self.login_handler, "cognito-idp:AdminInitiateAuth")

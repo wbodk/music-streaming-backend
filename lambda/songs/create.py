@@ -7,6 +7,7 @@ from datetime import datetime
 
 dynamodb = boto3.resource('dynamodb')
 s3 = boto3.client('s3')
+lambda_client = boto3.client('lambda')
 
 # CORS headers that must be included in every response
 CORS_HEADERS = {
@@ -157,6 +158,30 @@ def handler(event, context):
                 ':now': now
             }
         )
+        
+        # Trigger email notifications to subscribers (asynchronous)
+        try:
+            notification_payload = {
+                'event_type': 'song_created',
+                'artist_id': artist_id,
+                'content_title': body['title'],
+                'content_details': {
+                    'album_title': album_response['Item'].get('title', 'Unknown Album'),
+                    'genre': body.get('genre', ''),
+                    'duration': body.get('duration', 0)
+                }
+            }
+            
+            # Invoke send_notifications Lambda asynchronously
+            lambda_client.invoke(
+                FunctionName=os.environ.get('SEND_NOTIFICATIONS_FUNCTION', 'send-notifications'),
+                InvocationType='Event',  # Asynchronous invocation
+                Payload=json.dumps(notification_payload)
+            )
+            print(f"Notification triggered for song creation: {song_id}")
+        except Exception as e:
+            print(f"Warning: Failed to trigger notifications: {str(e)}")
+        
         return {
             'statusCode': 201,
             'headers': {

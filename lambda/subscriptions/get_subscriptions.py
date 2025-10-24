@@ -9,12 +9,14 @@ subscriptions_table = dynamodb.Table(os.environ['SUBSCRIPTIONS_TABLE_NAME'])
 def handler(event, context):
     """
     Get all artist subscriptions for a user.
-    Path parameter: userId
+    No path parameters needed.
+    User ID is automatically extracted from JWT claims.
     Query parameters: limit, last_key (for pagination)
     """
     try:
-        # Get user ID from path parameters
-        user_id = event.get('pathParameters', {}).get('userId')
+        # Extract user ID from JWT claims
+        claims = event.get('requestContext', {}).get('authorizer', {}).get('claims', {})
+        user_id = claims.get('sub')  # 'sub' is the user ID in Cognito tokens
         
         if not user_id:
             return {
@@ -24,7 +26,7 @@ def handler(event, context):
                     'Access-Control-Allow-Origin': '*'
                 },
                 'body': json.dumps({
-                    'error': 'Missing userId'
+                    'error': 'Authentication required'
                 })
             }
         

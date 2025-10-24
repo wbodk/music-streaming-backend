@@ -4,8 +4,9 @@ import os
 import uuid
 from datetime import datetime
 
-# Initialize DynamoDB
+# Initialize AWS services
 dynamodb = boto3.resource('dynamodb')
+lambda_client = boto3.client('lambda')
 table = dynamodb.Table(os.environ['TABLE_NAME'])
 
 def handler(event, context):
@@ -124,6 +125,29 @@ def handler(event, context):
                 ':updated_at': timestamp
             }
         )
+        
+        # Trigger email notifications to subscribers (asynchronous)
+        try:
+            notification_payload = {
+                'event_type': 'album_created',
+                'artist_id': artist_id,
+                'content_title': body['title'],
+                'content_details': {
+                    'release_date': body.get('release_date', 'Now'),
+                    'genre': body.get('genre', ''),
+                    'total_songs': 0
+                }
+            }
+            
+            # Invoke send_notifications Lambda asynchronously
+            lambda_client.invoke(
+                FunctionName=os.environ.get('SEND_NOTIFICATIONS_FUNCTION', 'send-notifications'),
+                InvocationType='Event',  # Asynchronous invocation
+                Payload=json.dumps(notification_payload)
+            )
+            print(f"Notification triggered for album creation: {album_id}")
+        except Exception as e:
+            print(f"Warning: Failed to trigger notifications: {str(e)}")
         
         return {
             'statusCode': 201,
