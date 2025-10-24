@@ -46,8 +46,8 @@ class DatabaseStack(Stack):
             sort_key=dynamodb.Attribute(name="artist_id", type=dynamodb.AttributeType.STRING),
             global_secondary_indexes=[
                 dynamodb.GlobalSecondaryIndexPropsV2(
-                    index_name="user-id-index",
-                    partition_key=dynamodb.Attribute(name="user_id", type=dynamodb.AttributeType.STRING),
+                    index_name="artist-id-index",
+                    partition_key=dynamodb.Attribute(name="artist_id", type=dynamodb.AttributeType.STRING),
                     sort_key=dynamodb.Attribute(name="subscription_date", type=dynamodb.AttributeType.STRING)
                 )
             ]

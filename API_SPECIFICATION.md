@@ -6,6 +6,7 @@
   - [Artist Filtering](#artist-filtering)
 - [Album Endpoints](#album-endpoints)
 - [Song Endpoints](#song-endpoints)
+- [Subscription Endpoints](#subscription-endpoints)
 - [Error Responses](#error-responses)
 - [Authentication](#authentication)
 
@@ -842,15 +843,6 @@ Update song metadata. **Requires admin authorization.**
 
 ---
 
-````
-
-**Error Responses:**
-- `400` - Invalid song ID format
-- `404` - Song not found
-- `500` - Internal server error
-
----
-
 ### PUT /songs/{songId}
 
 Update song metadata. **Requires admin authorization.**
@@ -916,6 +908,189 @@ songId: string (required, UUID)
 
 ---
 
+## Subscription Endpoints
+
+All subscription endpoints require Cognito authorization via Bearer token. The user ID is automatically extracted from the JWT `sub` claim - no need to pass it in the URL.
+
+### POST /subscriptions/{artistId}
+
+Subscribe the authenticated user to an artist for email notifications.
+
+**Path Parameters:**
+```
+artistId: string (required, UUID)
+```
+
+**Request Body:**
+```json
+{}
+```
+
+**Response (201):**
+```json
+{
+  "message": "Successfully subscribed to artist",
+  "user_id": "550e8400-e29b-41d4-a716-446655440000",
+  "artist_id": "660e8400-e29b-41d4-a716-446655440001",
+  "artist_name": "The Weeknd",
+  "subscription_date": "2025-10-24T12:00:00.000000"
+}
+```
+
+**How It Works:**
+- User ID extracted from JWT `sub` claim automatically
+- Email extracted from JWT `email` claim (verified during user registration)
+- Notifications are enabled by default
+- No email re-verification needed
+
+**Error Responses:**
+- `400` - Missing artistId or authentication claims
+- `404` - Artist not found
+- `409` - Already subscribed to this artist
+- `401` - Unauthorized (missing/invalid token)
+
+**Authentication:** Required (Cognito)
+
+---
+
+### GET /subscriptions
+
+Retrieve all artist subscriptions for the authenticated user.
+
+**Query Parameters:**
+```
+limit: integer (optional, default 20, max 100)
+last_key: string (optional, JSON-encoded pagination token)
+```
+
+**Response (200):**
+```json
+{
+  "message": "Subscriptions retrieved successfully",
+  "user_id": "550e8400-e29b-41d4-a716-446655440000",
+  "count": 2,
+  "subscriptions": [
+    {
+      "user_id": "550e8400-e29b-41d4-a716-446655440000",
+      "artist_id": "660e8400-e29b-41d4-a716-446655440001",
+      "artist_name": "The Weeknd",
+      "user_email": "user@example.com",
+      "subscription_date": "2025-10-24T12:00:00.000000",
+      "notification_enabled": true
+    }
+  ],
+  "last_key": null
+}
+```
+
+**Error Responses:**
+- `400` - Authentication required
+- `401` - Unauthorized
+
+**Authentication:** Required (Cognito)
+
+---
+
+### DELETE /subscriptions/{artistId}
+
+Unsubscribe the authenticated user from an artist.
+
+**Path Parameters:**
+```
+artistId: string (required, UUID)
+```
+
+**Response (200):**
+```json
+{
+  "message": "Successfully unsubscribed from artist",
+  "user_id": "550e8400-e29b-41d4-a716-446655440000",
+  "artist_id": "660e8400-e29b-41d4-a716-446655440001"
+}
+```
+
+**Error Responses:**
+- `404` - Subscription not found
+- `401` - Unauthorized
+
+**Authentication:** Required (Cognito)
+
+---
+
+### PUT /subscriptions/{artistId}/notifications
+
+Toggle email notifications for a subscription.
+
+**Path Parameters:**
+```
+artistId: string (required, UUID)
+```
+
+**Request Body:**
+```json
+{
+  "notification_enabled": true
+}
+```
+
+**Response (200):**
+```json
+{
+  "message": "Notifications enabled",
+  "user_id": "550e8400-e29b-41d4-a716-446655440000",
+  "artist_id": "660e8400-e29b-41d4-a716-446655440001",
+  "notification_enabled": true
+}
+```
+
+**Error Responses:**
+- `400` - Invalid request body, missing field, or authentication claims
+- `404` - Subscription not found
+- `401` - Unauthorized
+
+**Authentication:** Required (Cognito)
+
+---
+
+## Email Notifications
+
+When an admin creates a new song or album, automated email notifications are sent to all subscribed users with `notification_enabled: true`:
+
+### Song Release Notification
+
+**Trigger:** POST /songs (admin creates new song)
+
+**Recipient:** All users subscribed to the artist with notifications enabled
+
+**Email Content:**
+- Artist name
+- Song title
+- Album name
+- Genre
+- Link to listen in app
+
+### Album Release Notification
+
+**Trigger:** POST /albums (admin creates new album)
+
+**Recipient:** All users subscribed to the artist with notifications enabled
+
+**Email Content:**
+- Artist name
+- Album title
+- Release date
+- Genre
+- Track count
+- Link to explore album in app
+
+**Notes:**
+- Notifications are sent asynchronously (non-blocking)
+- Sender email: configured in AWS SES
+- Email uses verified address from user registration
+- Failed sends are logged but don't affect the operation
+
+---
+
 ## Authentication
 
 ### Token Structure
@@ -961,3 +1136,9 @@ aws cognito-idp admin-add-user-to-group \
 - **Album-Song Relationship:** When a song is created, it must reference an existing album via `album_id`. When a song is added to an album, the album's `total_songs` counter is automatically incremented
 - **CORS:** All endpoints have CORS enabled for all origins (`*`)
 - **Pagination:** Use `last_key` from response for next page of results
+- **Email Notifications:** 
+  - Automatically sent to subscribers when artists release new content
+  - Uses verified email from user registration (no re-verification)
+  - User can toggle notifications on/off per artist
+  - Sent asynchronously via AWS SES
+  - Requires SES sender email verification (one-time setup)
